@@ -113,13 +113,25 @@ base_final AS (
   --  AND ri2.cod_categoria_registro_compra = '2'
 )
 
-SELECT 
+SELECT
   'DE-WILSON' AS des_origen,
   ROW_NUMBER() OVER(
     ORDER BY cod_material, cod_centro, cod_proveedor
   ) AS val_rownum,
   'PE11' AS cod_sociedad,
-  *,
+  cod_material,
+  des_material,
+  cod_tipo_material,
+  des_categoria,
+  cod_centro,
+  cod_cuenta_proveedor,
+  flg_cuenta_proveedor,
+  cod_proveedor,
+  cod_organizacion_compra,
+  flg_proveedor,
+  cod_categoria_registro_compra,
+  num_plazo_entrega_previsto_cuota,
+  num_plazo_entrega_previsto_contrato,
   cod_material || cod_centro || COALESCE(cod_proveedor,'') AS val_dbkey,
   CURRENT_DATETIME('America/Lima') AS fec_proceso
 FROM base_final

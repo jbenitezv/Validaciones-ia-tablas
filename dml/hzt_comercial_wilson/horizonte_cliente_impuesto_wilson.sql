@@ -22,7 +22,10 @@ with clientes_impuestos_base as (
     cb.cod_pais_cliente,
     cb.cod_sociedad,
     cb.nombre_cliente as nom_cliente,
-    cb.flag_persona_natural as flg_persona_natural,
+    case 
+      when cb.flag_persona_natural is true then true 
+      when cb.flag_persona_natural is false then false 
+    end as flg_persona_natural,
     cb.tipo_documento as cod_tipo_documento,
     cb.numero_documento as cod_documento,
     cb.subdominio as cod_subdominio,
@@ -38,7 +41,7 @@ with clientes_impuestos_base as (
     -- ci.cod_clasificacion_impuesto,
     cb.cod_grupo_precio_alicorp,
     cb.des_grupo_precio_alicorp,
-    SAFE_CAST(NULL AS INT64) as flg_igv,
+    SAFE_CAST(NULL AS BOOL) as flg_igv,
     --case when ci.cod_clasificacion_impuesto in ('0','1') then 1 else 0 end as flag_igv
   from `{horizonte_project_id}.hzt_comercial.horizonte_cliente_base` cb
   -- left join `acpe-dev-mig-calidad-slv.slv_modelo_interlocutor.horizonte_cliente_impuesto` ci

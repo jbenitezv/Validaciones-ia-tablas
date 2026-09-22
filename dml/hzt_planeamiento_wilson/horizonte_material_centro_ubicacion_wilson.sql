@@ -1,7 +1,7 @@
 /*
 ***************************************
   USUARIO DE CREACIÓN : JBENITEZ
-  DETALLE : MODELO HORIZONTE_MATERIAL_CENTRO_PRODUCTO_TERMINADO
+  DETALLE : MODELO HORIZONTE_MATERIAL_CENTRO_UBICACION
   FECHA DE CREACIÓN: 18/09/2026
   
   HISTORIAL DE MODIFICACIÓN:		
@@ -11,12 +11,10 @@
 ***************************************
 */
 
-
-
-DELETE FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+DELETE FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 WHERE des_origen = 'DE-WILSON';
 
-INSERT INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+INSERT INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 
 WITH 
 datos_comercial AS (
@@ -34,6 +32,7 @@ datos_comercial AS (
       ORDER BY CASE WHEN cod_sociedad='PE11' THEN 1 ELSE 2 END, cod_sociedad
     ) AS val_rn
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_organizacion_venta`
+  WHERE COALESCE(cod_bloqueo_comercial,'')!='01'
 ),
 
 datos_negocio AS (
@@ -54,6 +53,7 @@ datos_negocio AS (
 --     id_material,
 --     STRING_AGG(DISTINCT cod_centro, ',') AS cod_centros_produccion
 --   FROM `{silver_project_id}.slv_modelo_produccion.horizonte_lista_material_cabecera`
+--   WHERE flg_version_fabricacion>0
 --   GROUP BY 1
 -- ),
 
@@ -61,8 +61,7 @@ datos_material AS (
   SELECT 
     id_material, 
     cod_material_funcional,
-    cod_material_reemplazo,
-    cod_bloqueo
+    cod_material_reemplazo
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_aux`
 ),
 
@@ -72,7 +71,7 @@ datos_centro AS (
     mb.cod_material,
     mb.cod_tipo_material,
     mc.tip_material_fabricacion,
-    mb.des_material AS des_denominacion_material, 
+    mb.des_material AS des_denominacion_material,
     CASE 
       WHEN (
         LEFT(mb.des_material,3) IN ('LAM','LÁM','EMP','ENV') 
@@ -118,11 +117,12 @@ datos_centro AS (
     mc.cod_almacen_produccion,
     mc.cod_grupo_importacion_exportacion,
     mc.cod_tipo_aprovisionamiento_especial, 
-    mc.cod_aprovisionamiento_especial, 
+    mc.cod_aprovisionamiento_especial,
     mc.des_aprovisionamiento_especial,
     mc.cod_centro_origen,
     mc.cod_sociedad_origen,
-    SAFE_CAST(NULL AS STRING) AS cod_centros_produccion, --cp.cod_centros_produccion,
+    --cp.cod_centros_produccion,
+    SAFE_CAST(NULL AS STRING) AS cod_centros_produccion,
     CASE WHEN mc2.id_material IS NOT NULL THEN TRUE ELSE FALSE END AS flg_extendido_centro_origen,
     mc.cod_grupo_carga,
     mc.cod_grupo_tratamiento_logistico,
@@ -134,8 +134,8 @@ datos_centro AS (
     dn.cod_marca,
     dn.cod_grupo_imputacion,
     mc.cod_estado_mantenimiento,
-    CASE WHEN mc.flg_vista_compra = 1 THEN TRUE ELSE FALSE END AS flg_compras,
-    CASE WHEN mc.flg_vista_venta = 1 THEN TRUE ELSE FALSE END AS flg_ventas,
+    CASE WHEN mc.flg_vista_compra=1 THEN TRUE ELSE FALSE END AS flg_compras,
+    CASE WHEN mc.flg_vista_venta=1 THEN TRUE ELSE FALSE END AS flg_ventas,
     CASE
       WHEN mb.cod_tipo_material='ZROH'
        AND mc.cod_caracteristica_planificacion='PD'
@@ -173,18 +173,36 @@ datos_centro AS (
     mc.flg_suspension,
     dm.cod_material_reemplazo, 
     dm.cod_material_funcional,
-    dm.cod_bloqueo,
     mc.cod_bloqueo_centro,
-    mc.cod_material_reemplazante,
-    CASE
-      WHEN dm2.id_material IS NOT NULL THEN TRUE 
-      ELSE FALSE
-    END AS flg_codigo_material_reemplazante,
+    mc.cod_material_reemplazante, 
     mb.flg_excepcion_granel AS flg_excepcion_graneles,
     mc.des_planificacion_necesidad,
     mc.flg_pedido_automatico, 
     mc.cod_disponibilidad AS flg_disponibilidad,
-    mc.cod_tamanio_lote
+    mc.cod_tamanio_lote,
+    mb.est_actualizacion,
+    CASE
+      WHEN mc.cod_clase_aprovisionamiento='E'
+       AND mb.est_actualizacion LIKE '%V%'
+       AND mb.est_actualizacion LIKE '%E%'
+       AND mb.est_actualizacion LIKE '%D%'
+       AND mb.est_actualizacion LIKE '%L%'
+       AND mb.est_actualizacion LIKE '%K%'
+       AND mb.est_actualizacion LIKE '%C%'
+       AND mb.est_actualizacion LIKE '%A%'
+       AND mb.est_actualizacion LIKE '%B%'
+       AND mb.est_actualizacion LIKE '%G%' THEN TRUE
+      WHEN COALESCE(mc.cod_clase_aprovisionamiento,'')!='E'
+       AND mb.est_actualizacion LIKE '%V%'
+       AND mb.est_actualizacion LIKE '%E%'
+       AND mb.est_actualizacion LIKE '%D%'
+       AND mb.est_actualizacion LIKE '%L%'
+       AND mb.est_actualizacion LIKE '%K%'
+       AND mb.est_actualizacion LIKE '%C%'
+       AND mb.est_actualizacion LIKE '%B%'
+       AND mb.est_actualizacion LIKE '%G%' THEN TRUE
+      ELSE FALSE
+    END AS flg_estado_actualizacion
   FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material` mb
   JOIN `{silver_project_id}.slv_modelo_material.horizonte_material_centro` mc
     ON mb.id_material=mc.id_material
@@ -193,13 +211,14 @@ datos_centro AS (
   -- LEFT JOIN centros_produccion cp
   --   ON mb.id_material=cp.id_material
   LEFT JOIN datos_material dm2
-    ON mc.cod_material_reemplazante = dm2.cod_material_funcional
+    ON mc.cod_material_reemplazante=dm2.cod_material_funcional
   LEFT JOIN datos_material dm
     ON mb.id_material=dm.id_material
   LEFT JOIN `{silver_project_id}.slv_modelo_material.horizonte_material_centro` mc2
     ON dm.id_material=mc2.id_material
    AND mc.cod_centro_origen=mc2.cod_centro
-  --WHERE mc.cod_sociedad IN ('PE11','PE21','PE14','PE13','PE16') 
+  -- WHERE COALESCE(mc.cod_bloqueo_centro,'')!='03'
+  --   AND mc.cod_sociedad IN ('PE11','PE21','PE14','PE13','PE16')
 ),
 
 -- materiales_componentes AS (
@@ -211,7 +230,7 @@ material_mrp_concatenado AS (
   SELECT 
     cod_material, 
     STRING_AGG(
-      IF(cod_caracteristica_planificacion != 'ND', cod_caracteristica_planificacion, NULL)
+      IF(cod_caracteristica_planificacion!='ND',cod_caracteristica_planificacion,NULL)
     ) AS cod_caracteristicas_concatenadas
   FROM datos_centro
   GROUP BY cod_material
@@ -221,13 +240,7 @@ material_mrp_concatenado AS (
 --   SELECT
 --     cod_caracteristica_planificacion,
 --     cod_material_componente,
---     cod_centro,
---     STRING_AGG(
---       CONCAT(
---         cod_tipo_material,'-',cod_material,'-',cod_centro,'-',
---         cod_alternativa_lista_material,'-',cod_posicion_componente
---       )
---     ) AS des_lista_materiales
+--     cod_centro
 --   FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_lista_material_componente`
 --   WHERE cod_tipo_material_componente IN ('ZLER','ZROH')
 --     AND cod_centro IN (
@@ -238,22 +251,6 @@ material_mrp_concatenado AS (
 --   GROUP BY cod_material_componente,cod_centro,cod_caracteristica_planificacion
 -- ),
 
--- componentes_lmt_activas_zfer AS (
---   SELECT
---     cod_caracteristica_planificacion,
---     cod_material_componente,
---     cod_centro,
---     cod_material
---   FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_lista_material_componente`
---   WHERE cod_tipo_material_componente IN ('ZFER')
---     AND cod_centro IN (
---       '1007','1011','1012','1014','1015','1016','1023','1024',
---       '1500','1501','1502','1503','1504','1505','1506','1507',
---       '1602','1603','1605','1606'
---     )
---   GROUP BY cod_material_componente,cod_centro,cod_caracteristica_planificacion,cod_material
--- ),
-
 materiales_stock AS (
   SELECT DISTINCT
     ma.id_material,
@@ -261,7 +258,7 @@ materiales_stock AS (
     ma.cod_centro
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_almacen` ma
   LEFT JOIN `{silver_project_id}.slv_modelo_material.horizonte_material_aux` s4
-    ON s4.id_material = ma.id_material
+    ON s4.id_material=ma.id_material
   WHERE cnt_stock_libre_utilizacion
       + cnt_stock_lotes_restringidos
       + cnt_stock_en_traslado
@@ -271,7 +268,7 @@ materiales_stock AS (
 ),
 
 -- materiales_racio_cu03 AS (
---   SELECT DISTINCT cod_material, cod_centro
+--   SELECT DISTINCT cod_material,cod_centro
 --   FROM (
 --     SELECT
 --       cod_material_padre AS cod_material,
@@ -300,35 +297,49 @@ materiales_stock AS (
 --   WHERE est_receta='4'
 --     AND num_version_fabricacion>=1
 --   GROUP BY id_material,cod_centro
---),
-
--- base_fert_hawa AS (
---   SELECT DISTINCT 
---     cod_material, 
---     est_nuevo_material AS flg_status_nuevo, 
---     ind_exportacion
---   FROM `{golden_project_id}.gld_inventario.s4_material_fert_hawa`
 -- ),
 
--- base_version_fabricacion AS (
+-- base_fert_hawa AS (
 --   SELECT DISTINCT
---     cod_material, 
---     cod_centro
---   FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_version_fabricacion`
+--     cod_material,
+--     est_nuevo_material AS flg_status_nuevo,
+--     ind_exportacion
+--   FROM `{golden_project_id}.gld_inventario.s4_material_fert_hawa`
 -- ),
 
 materiales_maquila AS (
   SELECT DISTINCT
     id_material
-  FROM `{silver_project_id}.slv_modelo_material.horizonte_material_centro` dc
-  WHERE dc.cod_planificacion_necesidad = 'TER'
+  FROM `{silver_project_id}.slv_modelo_material.horizonte_material_centro`
+  WHERE cod_planificacion_necesidad='TER'
 ),
 
-material_centro_ampliado AS (
-  SELECT DISTINCT
-    cod_material,
-    cod_centro
+base_clase_aprovisionamiento AS (
+  SELECT DISTINCT cod_material 
   FROM datos_centro
+  WHERE cod_clase_aprovisionamiento='E'
+),
+
+base_ubicacion AS (
+  SELECT DISTINCT 
+    id_material, 
+    cod_centro, 
+    cod_ubicacion, 
+    cod_almacen
+  FROM `{silver_project_id}.slv_modelo_material.horizonte_material_almacen`
+  WHERE cod_ubicacion IS NOT NULL
+),
+
+base_ubicacion_material AS (
+  SELECT 
+    bu.id_material, 
+    COUNT(DISTINCT SUBSTRING(bu.cod_ubicacion,1,4)) AS cnt
+  FROM base_ubicacion bu
+  LEFT JOIN `{silver_project_id}.slv_modelo_material.horizonte_material_centro` mc
+    ON bu.id_material=mc.id_material
+   AND bu.cod_centro=mc.cod_centro
+  GROUP BY 1
+  HAVING cnt>1
 ),
 
 materiales_ucdm AS (
@@ -370,27 +381,28 @@ base_final AS (
     dc.cod_categoria_valoracion,
     SAFE_CAST(NULL AS STRING) AS cod_categoria_valoracion_recomendada,
     dc.cod_caracteristica_planificacion,
-    CASE
-      WHEN cpl.cod_caracteristica_planificacion IS NULL THEN FALSE
-      ELSE TRUE
-    END AS flg_caract_planificacion,
+    CASE WHEN cpl.cod_caracteristica_planificacion IS NULL THEN FALSE ELSE TRUE END AS flg_caract_planificacion,
     dc.cod_clase_aprovisionamiento,
+    CASE WHEN bca.cod_material IS NOT NULL THEN TRUE ELSE FALSE END AS flg_clase_aprovisionamiento,
     dc.cod_planificacion_necesidad,
     dc.cod_grupo_compra,
-    CASE
-      WHEN grpc.cod_grupo_compra IS NULL THEN FALSE
-      ELSE TRUE
-    END AS flg_grupo_compras,
+    CASE WHEN grpc.cod_grupo_compra IS NULL THEN FALSE ELSE TRUE END AS flg_grupo_compras,
     dc.num_tiempo_entrega_previsto,
     dc.cod_almacen_aprovisionamiento_externo,
     dc.cod_almacen_produccion,
     dc.cod_grupo_importacion_exportacion,
     dc.cod_tipo_aprovisionamiento_especial,
     dc.cod_aprovisionamiento_especial,
+    CASE
+      WHEN dc.cod_aprovisionamiento_especial IS NOT NULL
+       AND dc.num_tiempo_entrega_previsto<7 THEN TRUE
+      ELSE FALSE
+    END AS flg_tiempo_entrega,
     dc.des_aprovisionamiento_especial,
     dc.cod_centro_origen,
     dc.cod_sociedad_origen,
-    dc.cod_centros_produccion,
+    --dc.cod_centros_produccion,
+    SAFE_CAST(NULL AS STRING) AS cod_centros_produccion,
     dc.flg_extendido_centro_origen,
     dc.cod_grupo_carga,
     dc.cod_grupo_tratamiento_logistico,
@@ -403,7 +415,7 @@ base_final AS (
     dc.flg_compras,
     dc.flg_ventas,
     dc.cod_centro_beneficio,
-    CASE 
+    CASE
       WHEN TRIM(COALESCE(val_prctr.cod_centro_beneficio,''))='' THEN NULL
       ELSE val_prctr.cod_centro_beneficio
     END AS cod_centro_beneficio_propuesto,
@@ -412,17 +424,17 @@ base_final AS (
     dc.fec_creacion_material,
     CASE 
       WHEN dc.cod_tipo_material IN ('ZFER','ZHAW')
-       AND dc.fec_creacion_material > '2024-03-11'
+       AND dc.fec_creacion_material>'2024-03-11'
        AND ucdm.id_material IS NOT NULL THEN 'UCDM'
       WHEN dc.cod_tipo_material IN ('ZLER','ZROH')
-       AND dc.fec_creacion_material > '2024-03-18'
+       AND dc.fec_creacion_material>'2024-03-18'
        AND ucdm.id_material IS NOT NULL THEN 'UCDM'
       WHEN dc.cod_tipo_material IN ('ZERS','ZHIB','ZNLA')
-       AND dc.fec_creacion_material >= '2024-07-01'
+       AND dc.fec_creacion_material>='2024-07-01'
        AND ucdm.id_material IS NOT NULL THEN 'UCDM'
       WHEN dc.cod_tipo_material NOT IN ('ZFER','ZHAW','ZLER','ZROH','ZERS','ZHIB','ZNLA') THEN NULL 
       ELSE 'Planeamiento'
-    END AS des_equipo_creador, 
+    END AS des_equipo_creador,
     dc.cod_usuario_creador,
     dc.fec_ultima_modificacion,
     dc.cod_usuario_ultima_modificacion,
@@ -435,7 +447,7 @@ base_final AS (
     dc.val_precio_anterior,
     CASE
       WHEN dc.val_precio_anterior!=0
-      THEN ABS(dc.val_precio_actual/dc.val_precio_anterior - 1)
+      THEN ABS(dc.val_precio_actual/dc.val_precio_anterior-1)
     END AS val_variacion_precio,
     CASE
       WHEN dc.val_cantidad_base!=0
@@ -457,11 +469,11 @@ base_final AS (
     dc.flg_fert_hawa,
     dc.est_status_fert_hawa,
 
-    SAFE_CAST(NULL AS BOOLEAN) flg_racio_cu03,
-    -- CASE 
+    -- CASE
     --   WHEN cu03.cod_material IS NOT NULL THEN TRUE
-    --   ELSE FALSE 
+    --   ELSE FALSE
     -- END AS flg_racio_cu03,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_racio_cu03,
 
     dc.des_negocio,
     dc.des_subnegocio,
@@ -481,7 +493,6 @@ base_final AS (
     dc.flg_suspension,
     dc.cod_material_reemplazo AS cod_material_reemplazo,
     dc.cod_material_funcional,
-    dc.cod_bloqueo,
 
     CASE
       WHEN SUBSTRING(dc.cod_grupo_tratamiento_logistico,4,1) IN ('6')
@@ -491,13 +502,12 @@ base_final AS (
       ELSE FALSE
     END AS flg_leadtime,
 
-    -- CASE 
-    --   WHEN ra.id_material IS NOT NULL THEN TRUE 
-    --   ELSE FALSE 
+    -- CASE
+    --   WHEN ra.id_material IS NOT NULL THEN TRUE
+    --   ELSE FALSE
     -- END AS flg_receta,
 
     -- ra.cod_grupo_receta,
-
     SAFE_CAST(NULL AS BOOLEAN) AS flg_receta,
     SAFE_CAST(NULL AS STRING) AS cod_grupo_receta,
 
@@ -544,76 +554,105 @@ base_final AS (
     END AS flg_aprov,
 
     CASE 
-      WHEN num_tiempo_entrega_previsto <=15
+      WHEN num_tiempo_entrega_previsto<=15
        AND dc.cod_caracteristica_planificacion='ZD'
        AND dc.cod_grupo_tratamiento_logistico='0002' THEN TRUE
-      WHEN num_tiempo_entrega_previsto >=15
+      WHEN num_tiempo_entrega_previsto>=15
        AND dc.cod_caracteristica_planificacion='YD'
        AND dc.cod_grupo_tratamiento_logistico='0002' THEN TRUE
       ELSE FALSE
     END AS flg_leadtime_mrp,
 
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_tipo_mrp_2,
-    SAFE_CAST(NULL AS STRING) AS cod_version_fabricacion,
-    SAFE_CAST(NULL AS STRING) AS est_nuevo,
+    CASE
+      WHEN dc.flg_pedido_automatico IS NULL THEN FALSE
+      ELSE dc.flg_pedido_automatico
+    END AS flg_pedido_automatico,
 
-    'Hadjie Tarazona' AS des_responsable_material_indirecto,
+    dc.flg_disponibilidad,
+    dc.cod_tamanio_lote AS cod_dimension_lote,
+    dc.est_actualizacion,
+    dc.flg_estado_actualizacion,
+
+    SAFE_CAST(NULL AS STRING) AS cod_nuevo_estado_material,
 
     CASE
-      WHEN crd.des_categoria = 'Harinas'
-       AND dc.cod_centro = '1015' THEN 'Alexander'
+      WHEN mmq.id_material IS NOT NULL THEN TRUE
+      ELSE FALSE
+    END AS flg_material_maquila,
+
+    mrc.cod_caracteristicas_concatenadas,
+    bu.cod_ubicacion,
+    bu.cod_almacen,
+
+    CASE
+      WHEN bum.id_material IS NOT NULL THEN TRUE
+      ELSE FALSE
+    END AS flg_ubicacion_errada,
+
+    CASE
+      WHEN dc.cod_centro!=SUBSTRING(bu.cod_ubicacion,6,4) THEN TRUE
+      ELSE FALSE
+    END AS flg_ubicacion_centro_errada,
+
+    CASE
+      WHEN REGEXP_CONTAINS(bu.cod_ubicacion,r'^[A-Za-z]{4}-[0-9]{4}$') THEN TRUE
+      ELSE FALSE
+    END AS flg_formato_ubicacion,
+
+    CASE
+      WHEN crd.des_categoria='Harinas'
+       AND dc.cod_centro='1015' THEN 'Alexander'
       WHEN crd.des_categoria IS NULL THEN 'Sin responsable'
-      ELSE crd.des_responsable 
+      ELSE crd.des_responsable
     END AS des_responsable_distribucion
 
   FROM datos_centro dc
 
-  LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_distribucion` crd 
-    ON UPPER(crd.des_categoria) = UPPER(dc.des_categoria)
+  LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_distribucion` crd
+    ON UPPER(crd.des_categoria)=UPPER(dc.des_categoria)
+
+  LEFT JOIN base_ubicacion bu
+    ON bu.id_material=dc.id_material
+   AND bu.cod_centro=dc.cod_centro
+
+  LEFT JOIN base_ubicacion_material bum
+    ON bum.id_material=dc.id_material
+
+  LEFT JOIN base_clase_aprovisionamiento bca
+    ON bca.cod_material=dc.cod_material
 
   LEFT JOIN materiales_maquila mmq
-    ON dc.id_material = mmq.id_material
-
-  LEFT JOIN material_centro_ampliado mca
-    ON dc.cod_material = mca.cod_material
-   AND dc.cod_centro_origen = mca.cod_centro
+    ON dc.id_material=mmq.id_material
 
   LEFT JOIN material_mrp_concatenado mrc
-    ON dc.cod_material = mrc.cod_material
+    ON dc.cod_material=mrc.cod_material
 
   -- LEFT JOIN base_fert_hawa fh
   --   ON REGEXP_REPLACE(dc.cod_material,'^0+','')
   --    = REGEXP_REPLACE(fh.cod_material,'^0+','')
 
-  -- LEFT JOIN base_version_fabricacion vfab
-  --   ON vfab.cod_material = dc.cod_material
-  --  AND vfab.cod_centro = dc.cod_centro
-
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_grupo_compra` grpc
-    ON dc.cod_tipo_material=grpc.cod_tipo_material 
+    ON dc.cod_tipo_material=grpc.cod_tipo_material
    AND dc.cod_grupo_compra=grpc.cod_grupo_compra
    AND dc.cod_grupo_articulo_3=grpc.cod_grupo_articulo
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_caracteristica_planificacion` cpl
-    ON dc.cod_tipo_material=cpl.cod_tipo_material 
-   AND COALESCE(dc.flg_compra_2,'')=COALESCE(cpl.flg_compra,'') 
+    ON dc.cod_tipo_material=cpl.cod_tipo_material
+   AND COALESCE(dc.flg_compra_2,'')=COALESCE(cpl.flg_compra,'')
    AND dc.cod_caracteristica_planificacion=cpl.cod_caracteristica_planificacion
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_homologacion_jerarquia_centro_beneficio` val_prctr
-    ON dc.cod_tipo_material IN ('ZFER','ZHAW') 
-   AND LEFT(dc.cod_jerarquia,7)=val_prctr.cod_categoria 
-   AND dc.cod_negocio=val_prctr.cod_negocio 
+    ON dc.cod_tipo_material IN ('ZFER','ZHAW')
+   AND LEFT(dc.cod_jerarquia,7)=val_prctr.cod_categoria
+   AND dc.cod_negocio=val_prctr.cod_negocio
    AND dc.cod_subnegocio=val_prctr.cod_subnegocio
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.rtr_costo_control_precio` cpr
     ON dc.cod_tipo_material=cpr.cod_tipo_material
    AND dc.cod_categoria_valoracion=cpr.cod_categoria_valoracion
 
-  -- LEFT JOIN componentes_lmt_activas mla 
-  --   ON dc.cod_material = mla.cod_material_componente
-
-  -- LEFT JOIN componentes_lmt_activas_zfer mlaz 
-  --   ON dc.cod_material = mlaz.cod_material_componente 
+  -- LEFT JOIN componentes_lmt_activas mla
+  --   ON dc.cod_material=mla.cod_material_componente
 
   -- LEFT JOIN materiales_componentes mc
   --   ON dc.id_material=mc.id_material
@@ -634,10 +673,6 @@ base_final AS (
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_grupo_produccion_centro_beneficio` cb
     ON dc.cod_negocio=cb.cod_negocio
 
-  -- LEFT JOIN `{horizonte_project_id}.hzt_planeamiento.horizonte_version_fabricacion` vb
-  --   ON mlaz.cod_material=vb.cod_material
-  --  AND mlaz.cod_centro=vb.cod_centro
-
   LEFT JOIN materiales_ucdm ucdm
     ON dc.id_material=ucdm.id_material
 
@@ -646,17 +681,147 @@ base_final AS (
 
 SELECT
   'DE-WILSON' AS des_origen,
-  ROW_NUMBER() OVER(ORDER BY cod_material,cod_centro) AS val_rownum,
-  *,
-  cod_material || COALESCE(cod_centro,'') AS val_dbkey,
+  ROW_NUMBER() OVER(
+    ORDER BY cod_material,cod_centro,cod_ubicacion,cod_almacen
+  ) AS val_rownum,
+  id_material,
+  cod_material,
+  flg_stock_material,
+  des_denominacion_material,
+  des_presentacion_2,
+  flg_materia_prima,
+  cod_tipo_material,
+  tip_material_fabricacion,
+  cod_jerarquia,
+  des_plataforma,
+  des_subplataforma,
+  des_categoria,
+  des_familia,
+  des_variedad,
+  des_presentacion,
+  cod_grupo_articulo,
+  des_grupo_articulo,
+  cod_grupo_articulo_3,
+  cod_propietario_marca,
+  cod_centro,
+  cod_sociedad,
+  cod_pais,
+  cod_grupo_transporte,
+  val_tiempo_vida,
+  cod_unidad_base,
+  cod_unidad_almacenamiento,
+  cod_indicador_control_precio,
+  cod_categoria_valoracion,
+  cod_categoria_valoracion_recomendada,
+  cod_caracteristica_planificacion,
+  flg_caract_planificacion,
+  cod_clase_aprovisionamiento,
+  flg_clase_aprovisionamiento,
+  cod_planificacion_necesidad,
+  cod_grupo_compra,
+  flg_grupo_compras,
+  num_tiempo_entrega_previsto,
+  cod_almacen_aprovisionamiento_externo,
+  cod_almacen_produccion,
+  cod_grupo_importacion_exportacion,
+  cod_tipo_aprovisionamiento_especial,
+  cod_aprovisionamiento_especial,
+  flg_tiempo_entrega,
+  des_aprovisionamiento_especial,
+  cod_centro_origen,
+  cod_sociedad_origen,
+  cod_centros_produccion,
+  flg_extendido_centro_origen,
+  cod_grupo_carga,
+  cod_grupo_tratamiento_logistico,
+  cod_grupo_planificacion,
+  cod_negocio,
+  cod_subnegocio,
+  cod_marca,
+  cod_grupo_imputacion,
+  cod_estado_mantenimiento,
+  flg_compras,
+  flg_ventas,
+  cod_centro_beneficio,
+  cod_centro_beneficio_propuesto,
+  cod_indicador_impuesto,
+  num_tiempo_trat_entrada_mercancia,
+  fec_creacion_material,
+  des_equipo_creador,
+  cod_usuario_creador,
+  fec_ultima_modificacion,
+  cod_usuario_ultima_modificacion,
+  cod_determinacion_precio,
+  val_determinacion_precio_correcto,
+  cod_indicador_control_precios,
+  cod_indicador_control_precios_correcto,
+  val_precio_actual,
+  val_cantidad_base,
+  val_precio_anterior,
+  val_variacion_precio,
+  val_ratio_precio_base,
+  des_grupo_gasto_gral,
+  val_tamanio_lote,
+  des_grupo_materiales1,
+  des_grupo_materiales2,
+  flg_estructura_cuantitativa,
+  flg_material_origen,
+  cod_tipo_valoracion,
+  flg_no_tiene_costo,
+  flg_material_coproducto,
+  flg_libro_materiales_activo,
+  flg_componente,
+  flg_fert_hawa,
+  est_status_fert_hawa,
+  flg_racio_cu03,
+  des_negocio,
+  des_subnegocio,
+  cod_centro_beneficio_digito_567,
+  flg_tipo_mrp,
+  cnt_stock_seguridad,
+  cnt_lote_minimo,
+  num_valor_redondeo,
+  flg_suspension,
+  cod_material_reemplazo,
+  cod_material_funcional,
+  flg_leadtime,
+  flg_receta,
+  cod_grupo_receta,
+  cod_bloqueo_centro,
+  flg_grp_trat_log,
+  cod_material_reemplazante,
+  flg_centro_ibp,
+  flg_excepcion_graneles,
+  des_planificacion_necesidad,
+  flg_aprov,
+  flg_leadtime_mrp,
+  flg_pedido_automatico,
+  flg_disponibilidad,
+  cod_dimension_lote,
+  est_actualizacion,
+  flg_estado_actualizacion,
+  cod_nuevo_estado_material,
+  flg_material_maquila,
+  cod_caracteristicas_concatenadas,
+  cod_ubicacion,
+  cod_almacen,
+  flg_ubicacion_errada,
+  flg_ubicacion_centro_errada,
+  flg_formato_ubicacion,
+  des_responsable_distribucion,
+  cod_material
+    || COALESCE(cod_centro,'')
+    || COALESCE(cod_ubicacion,'')
+    || COALESCE(cod_almacen,'') AS val_dbkey,
   CURRENT_DATETIME('America/Lima') AS fec_proceso
 FROM base_final
 --WHERE cod_centro!='D999'
 ;
 
-MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado` t
+
+MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion` t
 USING (
-  SELECT 
+  SELECT
     cod_tipo_material,
     cod_centro_beneficio
   FROM `{silver_project_id}.slv_gobierno.ptp_material_homologacion_tipo_material`
@@ -668,13 +833,13 @@ ON (
   AND t.cod_centro_beneficio=s.cod_centro_beneficio
 )
 WHEN MATCHED THEN
-UPDATE SET 
+UPDATE SET
   t.cod_centro_beneficio_propuesto=s.cod_centro_beneficio;
 
 
-MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado` t
+MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion` t
 USING (
-  SELECT 
+  SELECT
     cod_tipo_material,
     cod_grupo_articulo,
     cod_categoria_valoracion
@@ -687,11 +852,11 @@ ON (
   AND t.est_grupo_articulo_3=s.cod_grupo_articulo
 )
 WHEN MATCHED THEN
-UPDATE SET 
+UPDATE SET
   t.cod_categoria_valoracion_recomendada=s.cod_categoria_valoracion;
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada=cod_categoria_valoracion
 WHERE des_origen='DE-WILSON'
   AND cod_tipo_material='ZROH'
@@ -700,9 +865,9 @@ WHERE des_origen='DE-WILSON'
   AND cod_categoria_valoracion_recomendada='3004';
 
 
-MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado` t
+MERGE INTO `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion` t
 USING (
-  SELECT 
+  SELECT
     cod_tipo_material,
     cod_grupo_articulo,
     cod_categoria_valoracion
@@ -715,17 +880,17 @@ ON (
   AND LEFT(t.cod_grupo_articulo,3)=s.cod_grupo_articulo
 )
 WHEN MATCHED THEN
-UPDATE SET 
+UPDATE SET
   t.cod_categoria_valoracion_recomendada=s.cod_categoria_valoracion;
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada='7900'
 WHERE des_origen='DE-WILSON'
   AND cod_tipo_material='ZHAL'
   AND cod_material IN (
     SELECT DISTINCT cod_material
-    FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+    FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
     WHERE des_origen='DE-WILSON'
       AND cod_tipo_material='ZHAL'
       AND (
@@ -738,13 +903,13 @@ WHERE des_origen='DE-WILSON'
   );
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada='7920'
 WHERE des_origen='DE-WILSON'
   AND cod_tipo_material='ZFER'
   AND cod_material IN (
     SELECT DISTINCT cod_material
-    FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+    FROM `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
     WHERE des_origen='DE-WILSON'
       AND cod_tipo_material='ZFER'
       AND cod_clase_aprovisionamiento='E'
@@ -752,10 +917,10 @@ WHERE des_origen='DE-WILSON'
   );
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada='7921'
 WHERE des_origen='DE-WILSON'
-  AND cod_tipo_material='ZFER' 
+  AND cod_tipo_material='ZFER'
   AND cod_planificacion_necesidad='TER'
   AND (
     (
@@ -767,20 +932,20 @@ WHERE des_origen='DE-WILSON'
   AND cod_categoria_valoracion_recomendada IS NULL;
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada=
-  CASE 
+  CASE
     WHEN cod_tipo_material='ZFER' THEN '3006'
     WHEN cod_tipo_material='ZHAL' THEN '3007'
   END
 WHERE des_origen='DE-WILSON'
-  AND cod_tipo_material IN ('ZFER','ZHAL') 
+  AND cod_tipo_material IN ('ZFER','ZHAL')
   AND cod_sociedad_origen IS NOT NULL
   AND cod_centro!=cod_centro_origen
   AND cod_caracteristica_planificacion IN ('YD','ZD');
 
 
-UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_producto_terminado`
+UPDATE `{horizonte_project_id}.hzt_planeamiento.horizonte_material_centro_ubicacion`
 SET cod_categoria_valoracion_recomendada='0'
 WHERE des_origen='DE-WILSON'
   AND cod_categoria_valoracion_recomendada IS NULL;

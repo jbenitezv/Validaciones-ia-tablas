@@ -123,7 +123,10 @@ clientes_base_2 as (
     i.cod_grupo_interlocutor as cod_grupo_cliente,
     i.cod_pais as cod_pais_cliente,
     i.nom_interlocutor as nombre_cliente,
-    i.flg_persona_natural as flag_persona_natural,
+    case 
+      when i.flg_persona_natural is true then true 
+      when i.flg_persona_natural is false then false 
+    end as flag_persona_natural,
     i.cod_idioma as idioma_cliente,
     i.cod_contacto,
     i.cod_ubigeo,
@@ -138,10 +141,13 @@ clientes_base_2 as (
     bi.des_numero_documento as numero_documento,
     SAFE_CAST(NULL AS STRING) AS cod_sociedad, --ba.cod_sociedad,
     SAFE_CAST(NULL AS STRING) AS organizaciones_venta, --ov.organizaciones_venta,
-    case when bt.cod_interlocutor is not null then 1 else null end as flag_telefono,
-    case when bc.cod_interlocutor is not null then 1 else null end as flag_email,
-    case when bm.cod_interlocutor is not null then 1 else 0 end as flag_comentario,
-    i.flg_bloqueo_cliente,
+    case when bt.cod_interlocutor is not null then true else null end as flag_telefono,
+    case when bc.cod_interlocutor is not null then true else null end as flag_email,
+    case when bm.cod_interlocutor is not null then true else false end as flag_comentario,
+    case 
+      when i.flg_bloqueo_cliente is true then true 
+      when i.flg_bloqueo_cliente is false then false 
+    end as flg_bloqueo_cliente,
     cf.subdominio_ventas
   from `{silver_project_id}.slv_modelo_interlocutor.horizonte_interlocutor` i
   -- join base_alicorp ba
@@ -174,8 +180,8 @@ clientes_base as (
     length(cb.numero_documento) as cnt_longitud_nif,
     safe_cast(old.num_longitud as INT64) as cnt_longitud_correcta,
     case 
-      when cpdd.num_primer_digito is null then 0 
-      else 1 
+      when cpdd.num_primer_digito is null then false 
+      else true 
     end as flg_primer_digito,
     case 
       when cb.organizaciones_venta like '%1011%' then 'CMP' 
@@ -187,8 +193,8 @@ clientes_base as (
     cb.cod_contacto,
     cb.cod_ubigeo,
     case 
-      when cp.cod_ubigeo is null then 0 
-      else 1 
+      when cp.cod_ubigeo is null then false 
+      else true 
     end as flg_cod_ubigeo,
     cp2.cod_ubigeo as cod_ubigeo_sugerido,
     cb.poblacion as des_poblacion,
@@ -197,8 +203,8 @@ clientes_base as (
     cp.des_distrito as des_distrito_ubigeo,
     cb.cod_region,
     case 
-      when cr.cod_region is null then 0 
-      else 1 
+      when cr.cod_region is null then false 
+      else true 
     end as flg_region,
     cb.direccion as des_direccion,
     cb.zona_transporte as cod_zona_transporte,

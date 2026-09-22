@@ -78,7 +78,9 @@ datos_lote AS (
 ),
 
 datos_material_unidad_medida AS (
-  SELECT *
+  SELECT
+    id_material,
+    num_numerador_conversion
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_unidad_medida`
   -- WHERE cod_unidad_medida = 'PAL'
 ),
@@ -206,7 +208,39 @@ base_final AS (
 
 base_final_2 AS (
   SELECT
-    *,
+    id_material,
+    cod_material,
+    des_denominacion_material,
+    cod_tipo_material,
+    cod_centro,
+    des_descripcion_centro,
+    cod_sociedad,
+    nom_nombre_sociedad,
+    cod_pais,
+    cod_almacen,
+    cod_lote,
+    cod_centro_produccion,
+    flg_codigo_lote,
+    fec_creacion,
+    fec_vencimiento,
+    fec_produccion,
+    num_tiempo_minimo_duracion,
+    num_duracion_total_conservacion,
+    num_tiempo_vida_util,
+    cod_unidad_tiempo,
+    fec_vencimiento_max,
+    cod_primeros_dig_lote,
+    val_d,
+    num_tiempo_vida_util_real,
+    cnt_stock_libre_utilizacion,
+    cnt_stock_lotes_restringidos,
+    cnt_stock_en_traslado,
+    cnt_stock_bloqueado,
+    cnt_stock_en_inspeccion_calidad,
+    num_numerador_conversion,
+    flg_racio_cu03,
+    fec_prod2,
+    flg_estructura_lote,
     ROUND(num_tiempo_vida_util - num_tiempo_vida_util_real,2) AS num_tiempo_maximo_sku_almacen
   FROM base_final
 )
@@ -216,7 +250,40 @@ SELECT
   ROW_NUMBER() OVER(
     ORDER BY cod_material, cod_centro, cod_lote
   ) AS val_rownum,
-  *,
+  id_material,
+  cod_material,
+  des_denominacion_material,
+  cod_tipo_material,
+  cod_centro,
+  des_descripcion_centro,
+  cod_sociedad,
+  nom_nombre_sociedad,
+  cod_pais,
+  cod_almacen,
+  cod_lote,
+  cod_centro_produccion,
+  flg_codigo_lote,
+  fec_creacion,
+  fec_vencimiento,
+  fec_produccion,
+  num_tiempo_minimo_duracion,
+  num_duracion_total_conservacion,
+  num_tiempo_vida_util,
+  cod_unidad_tiempo,
+  fec_vencimiento_max,
+  cod_primeros_dig_lote,
+  val_d,
+  num_tiempo_vida_util_real,
+  cnt_stock_libre_utilizacion,
+  cnt_stock_lotes_restringidos,
+  cnt_stock_en_traslado,
+  cnt_stock_bloqueado,
+  cnt_stock_en_inspeccion_calidad,
+  num_numerador_conversion,
+  flg_racio_cu03,
+  fec_prod2,
+  flg_estructura_lote,
+  num_tiempo_maximo_sku_almacen,
   cod_material
     || COALESCE(cod_centro,'')
     || COALESCE(cod_almacen,'')

@@ -19,7 +19,10 @@ with clientes_correo_base as (
     cb.cod_grupo_cliente,
     cb.cod_pais_cliente,
     cb.nombre_cliente as nom_cliente,
-    cb.flag_persona_natural as flg_persona_natural,
+    case 
+      when cb.flag_persona_natural is true then true 
+      when cb.flag_persona_natural is false then false 
+    end as flg_persona_natural,
     cb.tipo_documento as cod_tipo_documento,
     cb.numero_documento as cod_documento,
     cb.subdominio as cod_subdominio,

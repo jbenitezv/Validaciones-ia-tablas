@@ -33,8 +33,14 @@ with clientes_telefono_base as (
     ct.cod_interno_telefono,
     ct.cod_pais_telefono as cod_pais_telefono,
     ct.num_telefono as num_telefono,
-    ct.flg_telefono_principal,
-    ct.flg_telefono_fijo,
+    case 
+      when ct.flg_telefono_principal is true then true 
+      when ct.flg_telefono_principal is false then false 
+    end as flg_telefono_principal,
+    case 
+      when ct.flg_telefono_fijo is true then true 
+      when ct.flg_telefono_fijo is false then false 
+    end as flg_telefono_fijo,
     ct.fec_inicio_validez,
     ct.fec_fin_validez,
     cb.cod_grupo_precio_alicorp,

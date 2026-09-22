@@ -47,7 +47,7 @@ WITH
 s4_personal AS (
   SELECT 
     ROW_NUMBER() OVER(ORDER BY a.id_interlocutor_origen) AS val_rownum,
-    a.des_origen AS cod_sociedad,
+    SAFE_CAST(NULL AS STRING) AS cod_sociedad, -- TODO: obtener de slv_modelo_interlocutor.horizonte_cliente_organizacion_venta
     a.cod_grupo_interlocutor,
     a.des_grupo_interlocutor,
     SAFE_CAST(NULL AS STRING) AS cod_gerencia_regional,

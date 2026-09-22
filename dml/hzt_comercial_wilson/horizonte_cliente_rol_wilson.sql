@@ -21,7 +21,10 @@ with clientes_roles_base as (
     cb.cod_grupo_cliente,
     cb.cod_pais_cliente,
     cb.nombre_cliente as nom_cliente,
-    cb.flag_persona_natural as flg_persona_natural,
+    case 
+      when cb.flag_persona_natural is true then true 
+      when cb.flag_persona_natural is false then false 
+    end as flg_persona_natural,
     cb.tipo_documento as cod_tipo_documento,
     cb.numero_documento as cod_documento,
     cb.subdominio as cod_subdominio,
@@ -33,8 +36,8 @@ with clientes_roles_base as (
     cr.fec_inicio_validez,
     cr.fec_fin_validez,
     case
-      when cr.cod_rol in ('FLCU00','FLCU01','ZDESTS','ZDESTM','ZAGDSD','ZTERRI','CRM010','UKM000') then 1
-      else 0
+      when cr.cod_rol in ('FLCU00','FLCU01','ZDESTS','ZDESTM','ZAGDSD','ZTERRI','CRM010','UKM000') then true
+      else false
     end as flg_rol,
     cb.cod_grupo_precio_alicorp,
     cb.des_grupo_precio_alicorp
