@@ -27,17 +27,17 @@ marc AS (
 vistas AS (
   SELECT
     id_material,
-    MAX(CASE WHEN cod_estado_mantenimiento LIKE '%E%' THEN 1 ELSE 0 END) AS flag_compras,
-    MAX(CASE WHEN cod_estado_mantenimiento LIKE '%V%' THEN 1 ELSE 0 END) AS flag_ventas
+    MAX(CASE WHEN cod_estado_mantenimiento LIKE '%E%' THEN TRUE ELSE FALSE END) AS flg_compras,
+    MAX(CASE WHEN cod_estado_mantenimiento LIKE '%V%' THEN TRUE ELSE FALSE END) AS flg_ventas
   FROM marc
   GROUP BY id_material
 ),
 uco AS (
   SELECT 
     id_material,
-    cod_unidad_comercial AS unidad_comercial_material,
-    SAFE_CAST(num_numerador_conversion_unidad_comercial AS INT64) AS numerador_conversion_uco,
-    SAFE_CAST(num_denominador_conversion_unidad_comercial AS INT64) AS denominador_conversion_uco
+    cod_unidad_comercial AS cod_unidad_comercial_material,
+    SAFE_CAST(num_numerador_conversion_unidad_comercial AS INT64) AS num_numerador_conversion_uco,
+    SAFE_CAST(num_denominador_conversion_unidad_comercial AS INT64) AS num_denominador_conversion_uco
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_aux`
   WHERE COALESCE(cod_bloqueo,'') != '03'
     -- AND cod_unidad_comercial IS NOT NULL
@@ -46,16 +46,16 @@ uco AS (
 --   SELECT
 --     id_material,
 --     cod_pais,
---     cod_clasificacion_impuesto_1 AS clasif_impuesto_1,
---     cod_clasificacion_impuesto_2 AS clasif_impuesto_2, 
---     cod_clasificacion_impuesto_3 AS clasif_impuesto_3
+--     cod_clasificacion_impuesto_1 AS cod_clasif_impuesto_1,
+--     cod_clasificacion_impuesto_2 AS cod_clasif_impuesto_2, 
+--     cod_clasificacion_impuesto_3 AS cod_clasif_impuesto_3
 --   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_impuesto`
 -- ),
 cebes AS (
   SELECT
     cv.id_material,
     cv.cod_sociedad,
-    ps.num_prioridad AS prioridad,
+    ps.num_prioridad AS num_prioridad,
     cv.cod_centro_beneficio,
     ROW_NUMBER() OVER(
       PARTITION BY cv.id_material
@@ -109,38 +109,38 @@ datos_material AS (
     mb.cod_duenio_marca,
     mb.cod_grupo_transporte,
     CASE 
-      WHEN vi.flag_compras = 1 THEN TRUE
-      WHEN vi.flag_compras = 0 THEN FALSE
+      WHEN vi.flg_compras = 1 THEN TRUE
+      WHEN vi.flg_compras = 0 THEN FALSE
     END AS flg_compras,
     CASE 
-      WHEN vi.flag_ventas = 1 THEN TRUE
-      WHEN vi.flag_ventas = 0 THEN FALSE
+      WHEN vi.flg_ventas = 1 THEN TRUE
+      WHEN vi.flg_ventas = 0 THEN FALSE
     END AS flg_ventas,
     ov.cod_organizacion_venta,
     ov.cod_canal_distribucion,
     ov.cod_pais,
     ov.cod_sociedad,
     ov.cod_grupo_imputacion,
-    ov.des_grupo_imputacion AS grupo_imputacion,
+    ov.des_grupo_imputacion AS des_grupo_imputacion,
     ov.cod_negocio,
-    ov.des_negocio AS negocio,
+    ov.des_negocio AS des_negocio,
     ov.cod_subnegocio,
-    ov.des_subnegocio AS subnegocio,
+    ov.des_subnegocio AS des_subnegocio,
     ov.cod_marca,
-    ov.des_marca AS marca,
-    ov.cod_unidad_comercial AS unidad_comercial_org_venta,
-    uc.unidad_comercial_material,
+    ov.des_marca AS des_marca,
+    ov.cod_unidad_comercial AS cod_unidad_comercial_org_venta,
+    uc.cod_unidad_comercial_material,
     mb.cod_unidad_base,
-    uc.numerador_conversion_uco,
-    uc.denominador_conversion_uco,
+    uc.num_numerador_conversion_uco,
+    uc.num_denominador_conversion_uco,
     CASE
       WHEN ov.cod_indicador_impuestos = '' THEN NULL
       ELSE ov.cod_indicador_impuestos
     END AS cod_indicador_impuestos,
     ov.des_indicador_impuestos,
-    SAFE_CAST(NULL AS STRING) AS clasif_impuesto_1,-- ml.clasif_impuesto_1,
-    SAFE_CAST(NULL AS STRING) AS clasif_impuesto_2,-- ml.clasif_impuesto_2, 
-    SAFE_CAST(NULL AS STRING) AS clasif_impuesto_3,-- ml.clasif_impuesto_3,
+    SAFE_CAST(NULL AS STRING) AS cod_clasif_impuesto_1,-- ml.cod_clasif_impuesto_1,
+    SAFE_CAST(NULL AS STRING) AS cod_clasif_impuesto_2,-- ml.cod_clasif_impuesto_2, 
+    SAFE_CAST(NULL AS STRING) AS cod_clasif_impuesto_3,-- ml.cod_clasif_impuesto_3,
     cp.cod_centro_beneficio,
     mb.fec_creacion_material,
     mb.cod_usuario_creador,
@@ -214,30 +214,30 @@ base_final AS (
     dm.cod_grupo_articulo_3,
     dm.cod_duenio_marca,
     dm.cod_grupo_transporte,
-    dm.flg_compras,
-    dm.flg_ventas,
+    dm.flg_compras AS flg_compra,
+    dm.flg_ventas AS flg_venta,
     dm.cod_organizacion_venta,
     dm.cod_canal_distribucion,
     dm.cod_pais,
     dm.cod_sociedad,
     dm.cod_grupo_imputacion,
-    dm.grupo_imputacion AS des_grupo_imputacion,
+    dm.des_grupo_imputacion AS des_grupo_imputacion,
     dm.cod_negocio,
-    dm.negocio AS des_negocio,
+    dm.des_negocio AS des_negocio,
     dm.cod_subnegocio,
-    dm.subnegocio AS des_subnegocio,
+    dm.des_subnegocio AS des_subnegocio,
     dm.cod_marca,
-    dm.marca AS des_marca,
-    dm.unidad_comercial_org_venta AS cod_unidad_comercial_organizacion_venta,
-    dm.unidad_comercial_material AS cod_unidad_comercial_material,
+    dm.des_marca AS des_marca,
+    dm.cod_unidad_comercial_org_venta AS cod_unidad_comercial_organizacion_venta,
+    dm.cod_unidad_comercial_material AS cod_unidad_comercial_material,
     dm.cod_unidad_base,
-    dm.numerador_conversion_uco AS num_numerador_conversion_unidad_comercial,
-    dm.denominador_conversion_uco AS num_denominador_conversion_unidad_comercial,
+    dm.num_numerador_conversion_uco AS num_numerador_conversion_unidad_comercial,
+    dm.num_denominador_conversion_uco AS num_denominador_conversion_unidad_comercial,
     dm.cod_indicador_impuestos AS cod_indicador_impuesto,
     dm.des_indicador_impuestos AS des_indicador_impuesto,
-    dm.clasif_impuesto_1 AS cod_clasificacion_impuesto_1,
-    dm.clasif_impuesto_2 AS cod_clasificacion_impuesto_2,
-    dm.clasif_impuesto_3 AS cod_clasificacion_impuesto_3,
+    dm.cod_clasif_impuesto_1 AS cod_clasificacion_impuesto_1,
+    dm.cod_clasif_impuesto_2 AS cod_clasificacion_impuesto_2,
+    dm.cod_clasif_impuesto_3 AS cod_clasificacion_impuesto_3,
     CASE
       WHEN im.cod_pais IS NULL THEN FALSE
       ELSE TRUE
@@ -273,9 +273,9 @@ base_final AS (
     ON bp.cod_material = dm.cod_material
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_pais_impuesto` im
     ON dm.cod_pais = im.cod_pais
-   AND CASE WHEN dm.clasif_impuesto_1 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_1,'')
-   AND CASE WHEN dm.clasif_impuesto_2 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_2,'')
-   AND CASE WHEN dm.clasif_impuesto_3 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_3,'')
+   AND CASE WHEN dm.cod_clasif_impuesto_1 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_1,'')
+   AND CASE WHEN dm.cod_clasif_impuesto_2 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_2,'')
+   AND CASE WHEN dm.cod_clasif_impuesto_3 IS NOT NULL THEN 'X' ELSE '' END = COALESCE(im.flg_impuesto_3,'')
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_grupo_produccion_centro_beneficio` cb
     ON dm.cod_negocio = cb.cod_negocio
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_familia_marca` f

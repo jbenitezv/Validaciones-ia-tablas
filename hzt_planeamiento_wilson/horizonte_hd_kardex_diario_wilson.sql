@@ -25,13 +25,13 @@ kardex_base as (
       k.des_categoria,
       'PE11' as cod_sociedad,
       k.des_familia,
-      k.cod_material,
+      k.cod_material AS id_material,
       k.des_material,
       SAFE_CAST(NULL AS STRING) AS cod_tipo_material,--f.cod_tipo_material,
-      k.cod_centro,
+      k.cod_centro AS id_centro,
       k.des_centro,
-      k.mnt_plan_venta,
-      k.mnt_avance_venta,
+      k.mnt_plan_venta AS mnt_plan_ventas,
+      k.mnt_avance_venta AS mnt_avance_ventas,
       k.prc_cumplimiento,
       k.mnt_proyeccion_lineal,
       k.prc_proyeccion_lineal,
@@ -40,31 +40,31 @@ kardex_base as (
       k.mnt_objetivo_diario,
       k.mnt_pedido_entrada,
       k.mnt_facturar_mes,
-      k.mnt_a_facturar,
-      k.mnt_retenido_credito,
+      k.mnt_a_facturar AS mnt_a_facturar_fecha,
+      k.mnt_retenido_credito AS mnt_retenido_x_credito,
       k.mnt_bloqueo_entrega,
       k.mnt_cliente_recoge,
       k.mnt_con_stock_asignado,
       k.mnt_con_stock,
       k.mnt_sin_stock,
       k.mnt_a_facturar_resto_mes,
-      k.mnt_stock_libre_ut,
-      k.mnt_stock_control_calidad,
-      k.mnt_dia_giro_plan,
-      k.mnt_stock_transito,
-      k.mnt_dia_giro_real,
-      k.mnt_avance_venta_pedido,
-      k.mnt_cumplimiento_venta,
-      k.mnt_venta_mes_anterior,
-      k.mnt_stock_total,
-      k.mnt_stock_bloqueado,
+      k.mnt_stock_libre_ut AS mnt_stk_libre_ut,
+      k.mnt_stock_control_calidad AS mnt_stk_control_calidad,
+      k.mnt_dia_giro_plan AS mnt_dia_giros_plan,
+      k.mnt_stock_transito AS mnt_stk_transito,
+      k.mnt_dia_giro_real AS num_dias_giro_real,
+      k.mnt_avance_venta_pedido AS mnt_avance_vta_mas_ped_ent,
+      k.mnt_cumplimiento_venta AS prc_cumpl_avance_vta_mas_ped_ent,
+      k.mnt_venta_mes_anterior AS mnt_vta_mes_anterior,
+      k.mnt_stock_total AS mnt_stk_total,
+      k.mnt_stock_bloqueado AS mnt_stk_bloqueado,
       k.mnt_avance_produccion,
-      k.flg_activo,
+      CASE WHEN TRIM(COALESCE(k.flg_activo,'')) != '' THEN TRUE ELSE FALSE END AS flg_activo,
       k.mnt_plan_pendiente,
       k.mnt_sobreventa,
-      k.mnt_stock_faltante,
-      k.mnt_stock_disponible,
-      k.mnt_stock_disponible_transito,
+      k.mnt_stock_faltante AS mnt_stk_faltante_p_plan,
+      k.mnt_stock_disponible AS mnt_stk_disponible,
+      k.mnt_stock_disponible_transito AS mnt_stk_dip_mas_transito,
       k.des_tier,
       k.des_jerarquia,
       k.des_expo,
@@ -72,30 +72,30 @@ kardex_base as (
       k.des_negocio,
       k.des_centro_concatenado,
       k.flg_teal,
-      k.des_teal,
+      k.des_teal AS des_teal_cd,
       k.mnt_pendiente_sin_stock,
       k.mnt_stock_pendiente,
       k.fec_registro,
-      k.mnt_indicador_dg,
-      k.cod_sku,
+      k.mnt_indicador_dg AS mnt_dg,
+      k.cod_sku AS cod_sku_cd,
       k.nom_responsable,
-      k.mnt_sku_indicador_dg,
-      k.mnt_objetivo_indicador_dg,
+      k.mnt_sku_indicador_dg AS mnt_dg_obj_sku,
+      k.mnt_objetivo_indicador_dg AS mnt_dg_objetivos,
       k.fec_ajustada,
       k.num_dia,
-      k.mnt_indicador_dg_real,
-      k.mnt_stock_alitrack,
-      k.mnt_venta,
+      k.mnt_indicador_dg_real AS mnt_dg_real,
+      k.mnt_stock_alitrack AS mnt_stk_alitrack,
+      k.mnt_venta AS mnt_sale_t,
       case 
       when mnt_stock_libre_ut is null then null
       when mnt_plan_venta is null then null
-      else 1
+      else TRUE
       end as flg_dg_libre_utilizacion,
       case 
       when mnt_stock_libre_ut is null then null
       when mnt_plan_venta is null then null
       when mnt_objetivo_indicador_dg is null then null
-      else 1
+      else TRUE
       end as flg_porcentaje_dg
    from `{silver_project_id}.slv_gobierno.ptp_kardex_diario` k
   --  left join materiales f 
@@ -108,10 +108,10 @@ select
   case 
     when round(mnt_plan_venta, 6) = 0 then 0
     else mnt_venta / mnt_plan_venta
-  end as porc_kd,
+  end as prc_kd,
   case 
     when round(mnt_venta, 6) = 0 then 0
     else mnt_venta
-  end as venta_realt,
+  end as mnt_venta_realt,
   coalesce(cod_material,'') || coalesce(des_material, '') || coalesce(cod_centro,'') || coalesce(des_centro,'')  as val_dbkey
 from kardex_base;
