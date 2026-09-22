@@ -21,12 +21,12 @@ datos_comercial as (
     id_material, 
     cod_sociedad,
     cod_negocio,
-    des_negocio as negocio,
+    des_negocio as des_negocio,
     cod_subnegocio,
-    des_subnegocio as subnegocio,
+    des_subnegocio as des_subnegocio,
     cod_marca,
     cod_grupo_imputacion,
-    row_number()over(partition by id_material order by case when cod_sociedad='PE11' then 1 else 2 end, cod_sociedad) as rn
+    row_number()over(partition by id_material order by case when cod_sociedad='PE11' then 1 else 2 end, cod_sociedad) as val_rn
   from `{silver_project_id}.slv_modelo_material.horizonte_material_organizacion_venta`
   where coalesce(cod_bloqueo_comercial,'')!='01'
 ),
@@ -34,13 +34,13 @@ datos_negocio as (
   select 
     id_material, 
     cod_negocio,
-    negocio, 
+    des_negocio, 
     cod_subnegocio,
-    subnegocio, 
+    des_subnegocio, 
     cod_marca, 
     cod_grupo_imputacion
   from datos_comercial
-  where rn=1
+  where val_rn=1
 ),
 -- centros_produccion as (
 --   select 
@@ -65,7 +65,7 @@ datos_centro as (
     mb.cod_material,
     mb.cod_tipo_material,
     mc.tip_material_fabricacion,
-    mb.des_material as denominacion_material,
+    mb.des_material as des_denominacion_material,
     case 
       when (
         left(mb.des_material,3) in ('LAM','LÁM','EMP','ENV') 
@@ -80,19 +80,19 @@ datos_centro as (
         left(mb.des_material,2) in ('TC','SF')
           or left(mb.des_material,5) in ('TERMO','STREC')
         ) then 'Termocontraible'
-    end as presentacion_2,
-    mb.flg_materia_prima as flag_materia_prima,
+    end as des_presentacion_2,
+    mb.flg_materia_prima as flg_materia_prima,
     mb.cod_jerarquia,
     mb.cod_plataforma,
-    mb.des_plataforma as plataforma,
-    mb.des_subplataforma as subplataforma,
-    mb.des_categoria as categoria,
-    mb.des_familia as familia,
-    mb.des_variedad as variedad,
-    mb.des_presentacion as presentacion,
+    mb.des_plataforma as des_plataforma,
+    mb.des_subplataforma as des_subplataforma,
+    mb.des_categoria as des_categoria,
+    mb.des_familia as des_familia,
+    mb.des_variedad as des_variedad,
+    mb.des_presentacion as des_presentacion,
     mb.cod_grupo_articulo,
     mb.des_grupo_articulo,
-    mb.cod_grupo_articulo_3 as grupo_articulo_3,
+    mb.cod_grupo_articulo_3 as cod_grupo_articulo_3,
     mb.cod_unidad_base,
     mb.cod_duenio_marca as cod_propietario_marca,
     mc.cod_centro,
@@ -107,11 +107,11 @@ datos_centro as (
     mc.cod_clase_aprovisionamiento,
     mc.cod_planificacion_necesidad,
     mc.cod_grupo_compra,
-    mc.num_tiempo_entrega_previsto as tiempo_entrega_previsto,
+    mc.num_tiempo_entrega_previsto as num_tiempo_entrega_previsto,
     mc.cod_almacen_aprovisionamiento_externo,
     mc.cod_almacen_produccion,
-    mc.cod_grupo_impo_expo,
-    mc.cod_tipo_aprov_especial,
+    mc.cod_grupo_importacion_exportacion,
+    mc.cod_tipo_aprovisionamiento_especial,
     mc.cod_aprovisionamiento_especial,
     mc.des_aprovisionamiento_especial,
     mc.cod_centro_origen,
@@ -123,47 +123,47 @@ datos_centro as (
     mc.cod_grupo_tratamiento_logistico,
     mc.cod_grupo_planificacion,
     dn.cod_negocio,
-    dn.negocio,
+    dn.des_negocio,
     dn.cod_subnegocio,
-    dn.subnegocio,
+    dn.des_subnegocio,
     dn.cod_marca,
     dn.cod_grupo_imputacion,
     mc.cod_estado_mantenimiento,
     case
       when mc.flg_vista_compra = 1 then true
       else false
-    end as flag_compras,
+    end as flg_compras,
     case
       when mc.flg_vista_venta = 1 then true
       else false
-    end as flag_ventas,
-    case when mb.cod_tipo_material ='ZROH' and mc.cod_caracteristica_planificacion='PD' and mb.des_material like '%COMPRA' then 'C' else null end as flag_compra_2,
+    end as flg_ventas,
+    case when mb.cod_tipo_material ='ZROH' and mc.cod_caracteristica_planificacion='PD' and mb.des_material like '%COMPRA' then TRUE else null end as flg_compra_2,
     mc.cod_centro_beneficio,
     mc.cod_indicador_impuesto,
-    mc.num_tiempo_tratamiento_entrada_mercancia as tiempo_trat_entrada_mercancia,
+    mc.num_tiempo_tratamiento_entrada_mercancia as num_tiempo_trat_entrada_mercancia,
     mb.fec_creacion_material,
     mb.cod_usuario_creador,
     mb.fec_ultima_modificacion,
     mb.cod_usuario_ultima_modificacion,
     mc.cod_determinacion_precio,
-    mc.cod_indicador_control_precio as indicador_control_precios,
-    mc.num_precio_valorizado as valor_precio_actual,
-    mc.num_cantidad_base as cantidad_base,
-    mc.val_precio_previo as valor_precio_anterior,
-    mc.cod_grupo_gasto as grupo_gasto_gral,
-    mc.num_tamanio_lote as tamanio_lote,
-    mb.des_grupo_material1 as grupo_materiales1,
-    mb.des_grupo_material2 as grupo_materiales2,
-    mc.flg_estructura_cuantitativa as flag_estructura_cuantitativa,
-    mc.flg_material_origen as flag_material_origen,
+    mc.cod_indicador_control_precio as cod_indicador_control_precios,
+    mc.num_precio_valorizado as val_precio_actual,
+    mc.num_cantidad_base as val_cantidad_base,
+    mc.val_precio_previo as val_precio_anterior,
+    mc.cod_grupo_gasto as des_grupo_gasto_gral,
+    mc.num_tamanio_lote as val_tamanio_lote,
+    mb.des_grupo_material1 as des_grupo_materiales1,
+    mb.des_grupo_material2 as des_grupo_materiales2,
+    mc.flg_estructura_cuantitativa as flg_estructura_cuantitativa,
+    mc.flg_material_origen as flg_material_origen,
     mc.cod_tipo_valoracion,
-    mc.flg_no_tiene_costo as flag_no_tiene_costo,
-    mc.flg_material_coproducto as flag_material_coproducto,
-    mc.flg_libro_material_activo as flag_libro_materiales_activo,
+    mc.flg_no_tiene_costo as flg_no_tiene_costo,
+    mc.flg_material_coproducto as flg_material_coproducto,
+    mc.flg_libro_material_activo as flg_libro_materiales_activo,
     mb.flg_fert_hawa,
-    mb.cod_estado as status_fert_hawa,
-    mc.cnt_stock_seguridad as cant_stock_seguridad,
-    mc.cnt_lote_minimo as cant_lote_minimo,
+    mb.cod_estado as est_status_fert_hawa,
+    mc.cnt_stock_seguridad as cnt_stock_seguridad,
+    mc.cnt_lote_minimo as cnt_lote_minimo,
     mc.num_valor_redondeo,
     mc.flg_suspension,
     dm.cod_material_reemplazo,
@@ -176,7 +176,7 @@ datos_centro as (
       when dm2.id_material is not null then true 
       else false
     end as flg_codigo_material_reemplazante,
-    mb.flg_excepcion_granel as flg_excep_graneles,
+    mb.flg_excepcion_granel as flg_excepcion_graneles,
     mc.des_planificacion_necesidad,
     mc.flg_pedido_automatico, 
     mc.cod_disponibilidad as flg_disponibilidad,
@@ -222,7 +222,7 @@ material_mrp_concatenado as (
 --     cod_caracteristica_planificacion,
 --     cod_material_componente,
 --     cod_centro,
---     string_agg(CONCAT(cod_tipo_material,'-',cod_material,'-',cod_centro,'-',cod_alternativa_lista_material,'-',cod_posicion_componente)) as lista_materiales
+--     string_agg(CONCAT(cod_tipo_material,'-',cod_material,'-',cod_centro,'-',cod_alternativa_lista_material,'-',cod_posicion_componente)) as des_lista_materiales
 --   from `{horizonte_project_id}.hzt_planeamiento.horizonte_lista_material_componente`
 --   where cod_tipo_material_componente in ('ZLER','ZROH','ZHAL')
 --   and cod_centro in ('1007','1011','1012','1014','1015','1016','1023','1024','1500','1501','1502','1503','1504','1505','1506','1507','1602','1603','1605','1606')
@@ -394,14 +394,14 @@ responsables_material_centro as (
     cod_material, 
     cod_centro, 
     des_responsable, 
-    row_number() over(partition by cod_material, cod_centro order by des_responsable) as ranking
+    row_number() over(partition by cod_material, cod_centro order by des_responsable) as val_ranking
   from `{silver_project_id}.slv_gobierno.ptp_material_responsable`
 ),
 responsable_categoria_pprod as (
   select distinct 
     des_categoria, 
     des_responsable, 
-    substring(id_categoria_responsable,8) as des_responsable_ip
+    substring(id_categoria_responsable,8) as nom_des_responsable_ip
   from `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_produccion`
 ),
 base_final as (
@@ -409,21 +409,21 @@ base_final as (
     dc.id_material,
     dc.cod_material,
     ms.cod_material_funcional as flg_stock_material,
-    dc.denominacion_material,
-    dc.presentacion_2,
-    dc.flag_materia_prima,
+    dc.des_denominacion_material,
+    dc.des_presentacion_2,
+    dc.flg_materia_prima,
     dc.cod_tipo_material,
     dc.tip_material_fabricacion,
     dc.cod_jerarquia,
-    dc.plataforma,
-    dc.subplataforma,
-    dc.categoria,
-    dc.familia,
-    dc.variedad,
-    dc.presentacion,
+    dc.des_plataforma,
+    dc.des_subplataforma,
+    dc.des_categoria,
+    dc.des_familia,
+    dc.des_variedad,
+    dc.des_presentacion,
     dc.cod_grupo_articulo,
     dc.des_grupo_articulo,
-    dc.grupo_articulo_3,
+    dc.cod_grupo_articulo_3,
     dc.cod_propietario_marca,
     dc.cod_centro,
     SAFE_CAST(NULL AS STRING) AS des_centro, -- mac.des_centro,
@@ -435,21 +435,21 @@ base_final as (
     dc.cod_unidad_almacenamiento,
     dc.cod_indicador_control_precio,
     dc.cod_categoria_valoracion,
-    safe_cast(null as string) as categoria_valoracion_recomendada,
+    safe_cast(null as string) as cod_categoria_valoracion_recomendada,
     dc.cod_caracteristica_planificacion,
-    case when cpl.cod_caracteristica_planificacion is null then false else true end as flag_caract_planificacion,
+    case when cpl.cod_caracteristica_planificacion is null then false else true end as flg_caract_planificacion,
     dc.cod_clase_aprovisionamiento,
     dc.cod_planificacion_necesidad,
     dc.cod_grupo_compra,
-    case when grpc.cod_grupo_compra is null then false else true end as flag_grupo_compras,
-    dc.tiempo_entrega_previsto,
+    case when grpc.cod_grupo_compra is null then false else true end as flg_grupo_compras,
+    dc.num_tiempo_entrega_previsto,
     dc.cod_almacen_aprovisionamiento_externo,
     dc.cod_almacen_produccion,
-    dc.cod_grupo_impo_expo,
-    dc.cod_tipo_aprov_especial,
+    dc.cod_grupo_importacion_exportacion,
+    dc.cod_tipo_aprovisionamiento_especial,
     dc.cod_aprovisionamiento_especial,
     case
-      when dc.cod_aprovisionamiento_especial is not null and dc.tiempo_entrega_previsto < 7 then true
+      when dc.cod_aprovisionamiento_especial is not null and dc.num_tiempo_entrega_previsto < 7 then true
       else false
     end as flg_tiempo_entrega,
     dc.des_aprovisionamiento_especial,
@@ -465,15 +465,15 @@ base_final as (
     dc.cod_marca,
     dc.cod_grupo_imputacion,
     dc.cod_estado_mantenimiento,
-    dc.flag_compras,
-    dc.flag_ventas,
+    dc.flg_compras,
+    dc.flg_ventas,
     dc.cod_centro_beneficio,
     case 
       when TRIM(coalesce(val_prctr.cod_centro_beneficio,''))='' THEN NULL
       ELSE val_prctr.cod_centro_beneficio
-    END as centro_beneficio_propuesto,
+    END as cod_centro_beneficio_propuesto,
     dc.cod_indicador_impuesto,
-    dc.tiempo_trat_entrada_mercancia,
+    dc.num_tiempo_trat_entrada_mercancia,
     dc.fec_creacion_material,
     case 
       when dc.cod_tipo_material in ('ZFER','ZHAW') and dc.fec_creacion_material > '2024-03-11' and ucdm.id_material is not null then 'UCDM'
@@ -486,75 +486,75 @@ base_final as (
     dc.fec_ultima_modificacion,
     dc.cod_usuario_ultima_modificacion,
     dc.cod_determinacion_precio,
-    cpr.flg_determinacion_precio as determinacion_precio_correcto,
-    dc.indicador_control_precios,
-    cpr.num_indicador_control_precio as indicador_control_precios_correcto,
-    dc.valor_precio_actual,
-    dc.cantidad_base,
-    dc.valor_precio_anterior,
-    case when dc.valor_precio_anterior!=0 then abs(dc.valor_precio_actual/dc.valor_precio_anterior - 1) end as variacion_precio,
-    case when dc.cantidad_base!=0 then round(dc.valor_precio_actual/dc.cantidad_base, 4) end as ratio_precio_base,
-    dc.grupo_gasto_gral,
-    dc.tamanio_lote,
-    dc.grupo_materiales1,
-    dc.grupo_materiales2,
-    dc.flag_estructura_cuantitativa,
-    dc.flag_material_origen,
+    cpr.flg_determinacion_precio as val_determinacion_precio_correcto,
+    dc.cod_indicador_control_precios,
+    cpr.num_indicador_control_precio as cod_indicador_control_precios_correcto,
+    dc.val_precio_actual,
+    dc.val_cantidad_base,
+    dc.val_precio_anterior,
+    case when dc.val_precio_anterior!=0 then abs(dc.val_precio_actual/dc.val_precio_anterior - 1) end as val_variacion_precio,
+    case when dc.val_cantidad_base!=0 then round(dc.val_precio_actual/dc.val_cantidad_base, 4) end as val_ratio_precio_base,
+    dc.des_grupo_gasto_gral,
+    dc.val_tamanio_lote,
+    dc.des_grupo_materiales1,
+    dc.des_grupo_materiales2,
+    dc.flg_estructura_cuantitativa,
+    dc.flg_material_origen,
     dc.cod_tipo_valoracion,
-    dc.flag_no_tiene_costo,
-    dc.flag_material_coproducto,
-    dc.flag_libro_materiales_activo,
+    dc.flg_no_tiene_costo,
+    dc.flg_material_coproducto,
+    dc.flg_libro_materiales_activo,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_componente, -- case when mc.cod_centro is null then true else false end,
     dc.flg_fert_hawa,
-    dc.status_fert_hawa,
+    dc.est_status_fert_hawa,
     -- case 
     --   when cu03.cod_material is not null then true
     --   else false 
     -- end as flg_racio_cu03,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_racio_cu03,
-    dc.negocio,
-    dc.subnegocio,
-    cb.val_centro_beneficio_digito as centro_beneficio_digi_567,
+    dc.des_negocio,
+    dc.des_subnegocio,
+    cb.val_centro_beneficio_digito as cod_centro_beneficio_digito_567,
     case
-      when dc.cod_caracteristica_planificacion in('YD') and dc.tiempo_entrega_previsto>4 then false
-      when dc.cod_caracteristica_planificacion in('ZD') and dc.tiempo_entrega_previsto<=4 then false
+      when dc.cod_caracteristica_planificacion in('YD') and dc.num_tiempo_entrega_previsto>4 then false
+      when dc.cod_caracteristica_planificacion in('ZD') and dc.num_tiempo_entrega_previsto<=4 then false
       else true
     end as flg_tipo_mrp,
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_tipo_mrp2,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_tipo_mrp_2,
     -- case
     --   when dc.cod_tipo_material = 'ZLER'
     --     and dc.cod_material = mla.cod_material_componente
     --     and mla.cod_caracteristica_planificacion NOT IN ('ND','XA')
     --     and dc.cod_centro=mla.cod_centro
-    --     and lista_materiales like '%ZFER%' then true
+    --     and des_lista_materiales like '%ZFER%' then true
     --   when dc.cod_tipo_material = 'ZROH'
     --     and dc.cod_material = mla.cod_material_componente
     --     and mla.cod_caracteristica_planificacion NOT IN ('ND','XA')
     --     and dc.cod_centro=mla.cod_centro
-    --     and lista_materiales like '%ZFER%' then true
+    --     and des_lista_materiales like '%ZFER%' then true
     --   else false
-    -- end as flg_tipo_mrp2,
-    dc.cant_stock_seguridad,
-    dc.cant_lote_minimo,
+    -- end as flg_tipo_mrp_2,
+    dc.cnt_stock_seguridad,
+    dc.cnt_lote_minimo,
     dc.num_valor_redondeo,
     dc.flg_suspension,
-    dc.cod_material_reemplazo as cod_mat_reemplazo,
+    dc.cod_material_reemplazo as cod_material_reemplazo,
     dc.cod_material_funcional,
     case
       when substring(dc.cod_grupo_tratamiento_logistico,4,1) in ('6')
-        and tiempo_entrega_previsto<=60 then true
+        and num_tiempo_entrega_previsto<=60 then true
       when substring(dc.cod_grupo_tratamiento_logistico,4,1) in ('7')
-        and tiempo_entrega_previsto<=30 then true
+        and num_tiempo_entrega_previsto<=30 then true
       else false
     end as flg_leadtime,
     -- case 
     --   when ra.id_material is not null then true 
     --   else false 
-    -- end as flg_tiene_receta,
+    -- end as flg_receta,
     -- ra.cod_grupo_receta,
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_tiene_receta,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_receta,
     SAFE_CAST(NULL AS STRING) AS cod_grupo_receta,
-    SAFE_CAST(NULL AS STRING) AS lista_materiales, -- mla.lista_materiales,
+    SAFE_CAST(NULL AS STRING) AS des_lista_materiales, -- mla.des_lista_materiales,
     dc.cod_bloqueo_centro,
     case
       when (substring(dc.cod_grupo_tratamiento_logistico,4,1) in('1','2','3','4','5','6') and dc.cod_tipo_material='ZLER') 
@@ -566,8 +566,8 @@ base_final as (
     case
       when dc.cod_centro in ('1007','1011','1012','1014','1015','1016','1023','1024','1500','1501','1502','1503','1504','1505','1506','1507','1602','1603','1605','1606') then true
       else false
-    end as flg_centros_ibp,
-    dc.flg_excep_graneles,
+    end as flg_centro_ibp,
+    dc.flg_excepcion_graneles,
     dc.des_planificacion_necesidad,
     case
       when (dc.cod_grupo_compra in ('324','312') and cod_clase_aprovisionamiento='F'
@@ -576,8 +576,8 @@ base_final as (
       else true
     end as flg_aprov,
     case 
-      when tiempo_entrega_previsto <=15 and dc.cod_caracteristica_planificacion='ZD' and dc.cod_grupo_tratamiento_logistico='0002' then true
-      when tiempo_entrega_previsto >=15 and dc.cod_caracteristica_planificacion='YD' and dc.cod_grupo_tratamiento_logistico='0002' then true
+      when num_tiempo_entrega_previsto <=15 and dc.cod_caracteristica_planificacion='ZD' and dc.cod_grupo_tratamiento_logistico='0002' then true
+      when num_tiempo_entrega_previsto >=15 and dc.cod_caracteristica_planificacion='YD' and dc.cod_grupo_tratamiento_logistico='0002' then true
       else false
     end as flg_leadtime_mrp,
     case
@@ -621,13 +621,13 @@ base_final as (
     -- case
     --   when czhal.cod_material is not null then true
     --   else false
-    -- end as flg_zhal_componente,
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_zhal_componente,
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_zroh_zler_componente,
+    -- end as flg_componente_zhal,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_componente_zhal,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_componente_zroh_zler,
     -- case
     --   when cro.cod_material is not null then true
     --   else false
-    -- end as flg_zroh_zler_componente,
+    -- end as flg_componente_zroh_zler,
     dc.num_tiempo_duracion,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_lista_activa,
     -- case
@@ -640,24 +640,24 @@ base_final as (
     SAFE_CAST(NULL AS DATE) AS fec_inicio_extrema_maxima, -- bfi.fec_inicio_extrema_maxima,
     case 
       when rm.cod_material is not null then rm.des_responsable
-      when rm.cod_material is null and dc.categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '10' then 'Sandra Flores'
-      when rm.cod_material is null and dc.categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '15' then 'Juan Teran' 
-      when rm.cod_material is null and dc.categoria not in ('Detergentes','Detergentes Maquila') then coalesce(cr.des_responsable, 'Sin responsable')
+      when rm.cod_material is null and dc.des_categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '10' then 'Sandra Flores'
+      when rm.cod_material is null and dc.des_categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '15' then 'Juan Teran' 
+      when rm.cod_material is null and dc.des_categoria not in ('Detergentes','Detergentes Maquila') then coalesce(cr.des_responsable, 'Sin responsable')
     end as des_responsable_material_centro,
     'Hadjie Tarazona' as des_responsable_material_indirecto,
     case
-      when dc.categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '10' then 'Karen Arzani'
-      when dc.categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '15' then 'Valeria Suazo'
-      when dc.categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1007','1023') then 'Javier Pairazaman'
-      when dc.categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1015') then 'Andres Bautista'
-      when dc.categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1016') then 'Javier Pairazaman'
+      when dc.des_categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '10' then 'Karen Arzani'
+      when dc.des_categoria in ('Detergentes','Detergentes Maquila') and left(dc.cod_centro,2) = '15' then 'Valeria Suazo'
+      when dc.des_categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1007','1023') then 'Javier Pairazaman'
+      when dc.des_categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1015') then 'Andres Bautista'
+      when dc.des_categoria in ('Harinas','Harinas Maquila') and dc.cod_centro in ('1016') then 'Javier Pairazaman'
       when rcp.des_categoria is null then 'Sin responsable'
       else rcp.des_responsable
     end as des_responsable_categoria_produccion, 
     case  
       when dc.cod_plataforma in ('10') then 'Angela Rodriguez'
       when dc.cod_plataforma in ('20','50') then 'Scarlet Flores'
-      when coalesce(dc.cod_plataforma,'') not in ('10','20','50') THEN rcp.des_responsable_ip
+      when coalesce(dc.cod_plataforma,'') not in ('10','20','50') THEN rcp.nom_des_responsable_ip
       else 'Sin Responsable'
     end as des_responsable_clasificacion, 
     case
@@ -668,15 +668,15 @@ base_final as (
     end as des_responsable_distribucion
   from datos_centro dc
   left join `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_distribucion` crd 
-    on UPPER(crd.des_categoria) = UPPER(dc.categoria)
+    on UPPER(crd.des_categoria) = UPPER(dc.des_categoria)
   left join responsable_categoria_pprod rcp 
-    on UPPER(rcp.des_categoria) = UPPER(dc.categoria)
+    on UPPER(rcp.des_categoria) = UPPER(dc.des_categoria)
   left join responsables_material_centro rm 
     on rm.cod_material = dc.cod_material
     and rm.cod_centro = dc.cod_centro
-    and ranking = 1
+    and val_ranking = 1
   left join `{silver_project_id}.slv_gobierno.ptp_categoria_responsable` cr 
-    on UPPER(cr.des_categoria) = UPPER(dc.categoria)
+    on UPPER(cr.des_categoria) = UPPER(dc.des_categoria)
 
 --  left join base_fecha_inicio bfi 
 --    on dc.id_material = concat('MAT-DE-WILSON-',bfi.cod_material)
@@ -730,10 +730,10 @@ base_final as (
   left join `{silver_project_id}.slv_gobierno.ptp_material_grupo_compra` grpc
     on dc.cod_tipo_material=grpc.cod_tipo_material 
     and dc.cod_grupo_compra=grpc.cod_grupo_compra
-    and dc.grupo_articulo_3=grpc.cod_grupo_articulo
+    and dc.cod_grupo_articulo_3=grpc.cod_grupo_articulo
   left join `{silver_project_id}.slv_gobierno.ptp_material_caracteristica_planificacion` cpl
     on dc.cod_tipo_material = cpl.cod_tipo_material 
-    and coalesce(dc.flag_compra_2,'')= coalesce(cpl.flg_compra,'') 
+    and coalesce(dc.flg_compra_2,'')= coalesce(cpl.flg_compra,'') 
     and dc.cod_caracteristica_planificacion=cpl.cod_caracteristica_planificacion
   left join `{silver_project_id}.slv_gobierno.ptp_homologacion_jerarquia_centro_beneficio` val_prctr
     on dc.cod_tipo_material in ('ZFER','ZHAW') 

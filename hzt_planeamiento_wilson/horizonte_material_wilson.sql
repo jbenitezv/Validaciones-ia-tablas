@@ -26,15 +26,15 @@ materia_prima as (
 -- , materiales_con_lmt as (
 --   select 
 --     id_material,
---     string_agg(cod_centro, ',') as centros_lmt
+--     string_agg(cod_centro, ',') as cod_centros_lmt
 --   from `{horizonte_project_id}.hzt_planeamiento.horizonte_lista_material_cabecera`
 --   group by id_material
 -- )
 , materiales_kg as (
   select
     id_material, 
-    num_numerador_conversion as denominador_kg, 
-    num_denominador_conversion as numerador_kg,
+    num_numerador_conversion as num_denominador_kg, 
+    num_denominador_conversion as num_numerador_kg,
   from `{silver_project_id}.slv_modelo_material.horizonte_material_unidad_medida`
   where cod_unidad_medida = 'KG'
 )
@@ -47,7 +47,7 @@ materia_prima as (
   SELECT 
     cod_tipo_material, 
     flg_materia_prima,
-    string_agg(cod_grupo_articulo, ',') as grupo_articulo_propuesto
+    string_agg(cod_grupo_articulo, ',') as cod_grupo_articulo_propuesto
   FROM `{silver_project_id}.slv_gobierno.ptp_grupo_articulo`
   GROUP BY cod_tipo_material, flg_materia_prima
 )
@@ -66,13 +66,13 @@ materia_prima as (
   select 
     id_material,
     cod_negocio,
-    des_negocio as grupo_materiales1,
+    des_negocio as des_grupo_materiales1,
     cod_subnegocio,
-    des_subnegocio as grupo_materiales2,
+    des_subnegocio as des_grupo_materiales2,
     cod_marca,
-    des_marca as grupo_materiales4,
+    des_marca as des_grupo_materiales4,
     cod_bloqueo_comercial,
-    row_number()over(partition by id_material order by cod_bloqueo_comercial, cod_organizacion_venta) as rnn
+    row_number()over(partition by id_material order by cod_bloqueo_comercial, cod_organizacion_venta) as val_rnn
   from `{silver_project_id}.slv_modelo_material.horizonte_material_organizacion_venta`
   where cod_sociedad in ('PE11','PE21','PE14','PE16')
 )
@@ -89,7 +89,7 @@ materia_prima as (
 , materiales_orgventa as (
   select *
   from materiales_orgventa_raw
-  where rnn = 1
+  where val_rnn = 1
 )
 , materiales_dummy as (
   select distinct id_material
@@ -126,7 +126,7 @@ materia_prima as (
   and coalesce(cod_bloqueo_centro, '') != '03'
 ) 
 -- , ultima_foto as (
---   select max(fec_proceso) as fecha
+--   select max(fec_proceso) as fec_fecha
 --   from `{horizonte_project_id}.hzt_planeamiento.horizonte_material_historico`
 --   where fec_proceso < current_date
 -- )
@@ -139,13 +139,13 @@ materia_prima as (
 --     ht.fec_proceso
 --   from `{horizonte_project_id}.hzt_planeamiento.horizonte_material_historico` ht
 --   join ultima_foto fot
---     on ht.fec_proceso=fot.fecha
+--     on ht.fec_proceso=fot.fec_fecha
 -- )
 , factor_paleta as (
   select 
     id_material,
-    num_numerador_conversion as numerador_conversion_paleta,
-    num_denominador_conversion as denominador_conversion_paleta
+    num_numerador_conversion as num_numerador_conversion_paleta,
+    num_denominador_conversion as num_denominador_conversion_paleta
   from `{silver_project_id}.slv_modelo_material.horizonte_material_unidad_medida`
   where cod_unidad_medida = 'PAL'
 )
@@ -178,120 +178,120 @@ group by 1
     mb.id_material,
     mb.id_material_origen as cod_material,
     mbd.cod_material_funcional as cod_material_interfaz,
-    mb.des_material as denominacion_material,
+    mb.des_material as des_material,
     mb.cod_tipo_material,
     mb.cod_jerarquia_material,
     case 
         when trim(substring(mb.cod_jerarquia_material,5,3)) = '' then null
         else substring(mb.cod_jerarquia_material,5,3)
-    end as categoria_producto,
-    length(mb.cod_jerarquia_material) as long_cod_jerarquia,
+    end as cod_categoria_producto,
+    length(mb.cod_jerarquia_material) as num_long_cod_jerarquia,
     SAFE_CAST(NULL AS STRING) AS cod_plataforma, -- mj.cod_plataforma,
-    SAFE_CAST(NULL AS STRING) AS plataforma, -- mj.des_plataforma as plataforma,
+    SAFE_CAST(NULL AS STRING) AS des_plataforma, -- mj.des_plataforma as des_plataforma,
     SAFE_CAST(NULL AS STRING) AS cod_sub_plataforma, -- mj.cod_sub_plataforma,
-    SAFE_CAST(NULL AS STRING) AS subplataforma, -- mj.des_sub_plataforma as subplataforma,
+    SAFE_CAST(NULL AS STRING) AS des_subplataforma, -- mj.des_sub_plataforma as des_subplataforma,
     SAFE_CAST(NULL AS STRING) AS cod_categoria, -- mj.cod_categoria,
-    SAFE_CAST(NULL AS STRING) AS categoria, -- mj.des_categoria as categoria,
+    SAFE_CAST(NULL AS STRING) AS des_categoria, -- mj.des_categoria as des_categoria,
     SAFE_CAST(NULL AS STRING) AS cod_familia, -- mj.cod_familia,
-    SAFE_CAST(NULL AS STRING) AS familia, -- mj.des_familia as familia,
+    SAFE_CAST(NULL AS STRING) AS des_familia, -- mj.des_familia as des_familia,
     SAFE_CAST(NULL AS STRING) AS cod_variedad, -- mj.cod_variedad,
-    SAFE_CAST(NULL AS STRING) AS variedad, -- mj.des_variedad as variedad,
+    SAFE_CAST(NULL AS STRING) AS des_variedad, -- mj.des_variedad as des_variedad,
     SAFE_CAST(NULL AS STRING) AS cod_presentacion, -- mj.cod_presentacion,
-    SAFE_CAST(NULL AS STRING) AS presentacion, -- mj.des_presentacion as presentacion,
-    case when mp.id_material is null then 0 else 1 end as flag_materia_prima,
-    case when mp.id_material is null then FALSE else TRUE end as flag_materia_prima_2,
-    case when md.id_material is null then FALSE else TRUE end as flag_dummy,
+    SAFE_CAST(NULL AS STRING) AS des_presentacion, -- mj.des_presentacion as des_presentacion,
+    case when mp.id_material is null then FALSE else TRUE end as flg_materia_prima,
+    case when mp.id_material is null then FALSE else TRUE end as flg_materia_prima_2,
+    case when md.id_material is null then FALSE else TRUE end as flg_dummy,
     mb.cod_grupo_material,
     mb.des_grupo_material,
-    left(mb.cod_grupo_material, 1) as grupo_articulo_2,
-    case left(mb.cod_grupo_material,1) when 'C' then 'C' else 'X' end as grupo_articulo_3,
+    left(mb.cod_grupo_material, 1) as cod_grupo_articulo_2,
+    case left(mb.cod_grupo_material,1) when 'C' then 'C' else 'X' end as cod_grupo_articulo_3,
     left(mbd.des_duenio_marca,4) as cod_sociedad,
-    case when mc.id_material is null then FALSE else TRUE end as flag_centro,
-    case when mo.id_material is null then FALSE else TRUE end as flag_organizacion_venta,
-    mb.cod_unidad_medida_base,
+    case when mc.id_material is null then FALSE else TRUE end as flg_centro,
+    case when mo.id_material is null then FALSE else TRUE end as flg_organizacion_venta,
+    mb.cod_unidad_medida_base as cod_unidad_base,
     mbd.cod_bloqueo,
     mbd.cod_grupo_transporte,
-    mbd.des_grupo_transporte as grupo_transporte,
-    safe_cast(mbd.num_duracion_total as INT64) as tiempo_vida, 
-    safe_cast(mbd.num_tiempo_duracion as INT64) as tiempo_duracion,
-    mbd.cod_unidad_tiempo as unidad_tiempo_vida,
-    mbd.est_actualizacion as status_actualizacion,
-    mbd.est_actualizacion_completa as status_actualizacion_completa,
+    mbd.des_grupo_transporte as des_grupo_transporte,
+    safe_cast(mbd.num_duracion_total as INT64) as num_tiempo_vida, 
+    safe_cast(mbd.num_tiempo_duracion as INT64) as num_tiempo_duracion,
+    mbd.cod_unidad_tiempo as cod_unidad_tiempo_vida,
+    mbd.est_actualizacion as est_status_actualizacion,
+    mbd.est_actualizacion_completa as est_status_actualizacion_completa,
     mbd.cod_duenio_marca,
-    mbd.des_duenio_marca as fabricante,
+    mbd.des_duenio_marca as des_fabricante,
     mbd.cod_onu_cubso,
     mbd.cod_unidad_tiempo,
-    mb.num_peso_bruto as peso_bruto_unidad_base,
-    mb.num_peso_neto as peso_neto_unidad_base,
-    mb.cod_unidad_peso,
+    mb.num_peso_bruto as mnt_peso_bruto_unidad_base,
+    mb.num_peso_neto as mnt_peso_neto_unidad_base,
+    mb.cod_unidad_peso as cod_unidad_peso_base,
     safe_cast(round(
       case mb.cod_unidad_peso
         when 'TO' then 1000
         when 'G' then 0.001
         else 1 
-      end * mb.num_peso_bruto, 3) as NUMERIC) as peso_bruto_kg,
+      end * mb.num_peso_bruto, 3) as NUMERIC) as mnt_peso_bruto_kg,
     safe_cast(round(
       case mb.cod_unidad_peso
         when 'TO' then 1000
         when 'G' then 0.001
         else 1 
-      end * mb.num_peso_neto, 3) as NUMERIC) as peso_neto_kg,
-    marm.numerador_kg,
-    marm.denominador_kg,
-    case when marm.id_material is null then FALSE else TRUE end as flag_conversion_kg,            
-    safe_cast(round(marm.numerador_kg / marm.denominador_kg, 3) as NUMERIC) as peso_convertido_kg,
-    case when mu.id_material is null then FALSE else TRUE end as flag_unidad_comercial,
-    mbd.cod_unidad_comercial as unidad_comercial_material,
-    mbd.num_peso_bruto_comercial as peso_bruto_unidad_comercial,
-    mbd.cod_unidad_peso_comercial as unidad_peso_comercial,
+      end * mb.num_peso_neto, 3) as NUMERIC) as mnt_peso_neto_kg,
+    marm.num_numerador_kg,
+    marm.num_denominador_kg,
+    case when marm.id_material is null then FALSE else TRUE end as flg_conversion_kg,            
+    safe_cast(round(marm.num_numerador_kg / marm.num_denominador_kg, 3) as NUMERIC) as mnt_peso_convertido_kg,
+    case when mu.id_material is null then FALSE else TRUE end as flg_unidad_comercial,
+    mbd.cod_unidad_comercial as cod_unidad_comercial_material,
+    mbd.num_peso_bruto_comercial as mnt_peso_bruto_unidad_comercial,
+    mbd.cod_unidad_peso_comercial as cod_unidad_peso_comercial,
     safe_cast(round(
       case mbd.cod_unidad_peso_comercial
         when 'TO' then 1000
         when 'G' then 0.001
         else 1 
-      end * mbd.num_peso_bruto_comercial, 3) as NUMERIC) as peso_unidad_comercial_kg,
-    mbd.num_numerador_conversion_unidad_comercial as numerador_conversion_uco,
-    mbd.num_denominador_conversion_unidad_comercial as denominador_conversion_uco,
+      end * mbd.num_peso_bruto_comercial, 3) as NUMERIC) as mnt_peso_unidad_comercial_kg,
+    mbd.num_numerador_conversion_unidad_comercial as num_numerador_conversion_uco,
+    mbd.num_denominador_conversion_unidad_comercial as num_denominador_conversion_uco,
     safe_cast(round(
       case mbd.cod_unidad_peso_comercial when 'TO' then 1000 when 'G' then 0.001 else 1 end * 
         mbd.num_peso_bruto_comercial * mbd.num_denominador_conversion_unidad_comercial/
           mbd.num_numerador_conversion_unidad_comercial,
-      3) as NUMERIC) as peso_bruto_unidad_base_calculado,
+      3) as NUMERIC) as mnt_peso_bruto_unidad_base_calculado,
     mbd.cod_planner,
     mbd.flg_sujeto_a_lote,
     mb.fec_creacion as fec_creacion_material,
     mbd.cod_usuario_creador,
     mb.fec_modificacion as fec_ultima_modificacion,
     mbd.cod_usuario_ultima_modificacion,
-    case when al.id_material is not null then TRUE else FALSE  end as flag_alicorp,
-    case when mai.id_material is not null then TRUE else FALSE end as flag_ali_itdvco,
+    case when al.id_material is not null then TRUE else FALSE  end as flg_alicorp,
+    case when mai.id_material is not null then TRUE else FALSE end as flg_ali_itdvco,
     SAFE_CAST(NULL AS INT64) AS num_tiempo_vida_anterior, -- mth.num_tiempo_vida_anterior,
-    SAFE_CAST(NULL AS STRING) AS unidad_tiempo_vida_ant, -- mth.cod_unidad_tiempo,
-    SAFE_CAST(NULL AS DATE) AS fecha_tiempo_vida_ant, -- safe_cast(mth.fec_proceso as date),
-    SAFE_CAST(NULL AS BOOLEAN) AS flag_tiempo_vida, -- case when mth.num_tiempo_vida_anterior =mbd.num_duracion_total then TRUE else FALSE end,
+    SAFE_CAST(NULL AS STRING) AS cod_unidad_tiempo_vida_ant, -- mth.cod_unidad_tiempo,
+    SAFE_CAST(NULL AS DATE) AS fec_tiempo_vida_ant, -- safe_cast(mth.fec_proceso as date),
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_tiempo_vida, -- case when mth.num_tiempo_vida_anterior =mbd.num_duracion_total then TRUE else FALSE end,
     mbd.cod_bloqueo_venta,
     mo.cod_negocio,
-    mo.grupo_materiales1,
+    mo.des_grupo_materiales1,
     mo.cod_subnegocio,
-    mo.grupo_materiales2,
+    mo.des_grupo_materiales2,
     mo.cod_marca,
-    mo.grupo_materiales4,
-    mbd.cod_unidad_almacenamiento as unidad_almacenamiento,
-    mbd.num_numerador_conversion_unidad_almacenamiento as numerador_conv_unidad_almacenamiento,
-    mbd.num_denominador_conversion_unidad_almacenamiento as denominador_conv_unidad_almacenamiento,
-    mbd.num_peso_bruto_almacenamiento as peso_bruto_almacenamiento,
+    mo.des_grupo_materiales4,
+    mbd.cod_unidad_almacenamiento as cod_unidad_almacenamiento,
+    mbd.num_numerador_conversion_unidad_almacenamiento as num_numerador_conv_unidad_almacenamiento,
+    mbd.num_denominador_conversion_unidad_almacenamiento as num_denominador_conv_unidad_almacenamiento,
+    mbd.num_peso_bruto_almacenamiento as mnt_peso_bruto_almacenamiento,
     mb.num_peso_neto*mbd.num_numerador_conversion_unidad_almacenamiento/
-    mbd.num_denominador_conversion_unidad_almacenamiento as peso_neto_almacenamiento,
-    pal.numerador_conversion_paleta,
-    pal.denominador_conversion_paleta,
-    mb.num_peso_neto*pal.numerador_conversion_paleta/
-    pal.denominador_conversion_paleta as peso_neto_paleta,
-    mb.num_volumen as volumen_unidad_base,
-    mb.cod_unidad_volumen as unidad_volumen_base,
+    mbd.num_denominador_conversion_unidad_almacenamiento as mnt_peso_neto_almacenamiento,
+    pal.num_numerador_conversion_paleta,
+    pal.num_denominador_conversion_paleta,
+    mb.num_peso_neto*pal.num_numerador_conversion_paleta/
+    pal.num_denominador_conversion_paleta as mnt_peso_neto_paleta,
+    mb.num_volumen as mnt_volumen_unidad_base,
+    mb.cod_unidad_volumen as cod_unidad_volumen_base,
     mbd.cod_material_reemplazo,
     mbd2.cod_material_reemplazo as cod_material_reemplazo_recursivo,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_lmt, -- case when lmt.id_material is not null then TRUE else FALSE end flg_lmt,
-    SAFE_CAST(NULL AS STRING) AS centros_lmt, -- lmt.centros_lmt,
+    SAFE_CAST(NULL AS STRING) AS cod_centros_lmt, -- lmt.cod_centros_lmt,
     mo.cod_bloqueo_comercial,
     mbd.cod_grupo_tipo_posicion_general,
     mb.cod_ramo,
@@ -358,13 +358,13 @@ group by 1
 --   -- where cod_clase = '023'
 -- )
 -- , base_consumo_201_261 as (
---   SELECT id_material, fec_movimiento, rank() over (partition by id_material order by fec_movimiento desc) as ranking 
+--   SELECT id_material, fec_movimiento, rank() over (partition by id_material order by fec_movimiento desc) as val_ranking 
 --   from `{silver_project_id}.slv_modelo_material.horizonte_movimiento_detalle`
 --   WHERE PERIODO > '2023-01-01'
 --   and cod_clase_movimiento in ('201','261')
 -- )
 -- , base_consumo_101 as (
---   SELECT id_material, fec_movimiento, rank() over (partition by id_material order by fec_movimiento desc) as ranking 
+--   SELECT id_material, fec_movimiento, rank() over (partition by id_material order by fec_movimiento desc) as val_ranking 
 --   from `{silver_project_id}.slv_modelo_material.horizonte_movimiento_detalle`
 --   WHERE PERIODO > '2023-01-01'
 --   and cod_clase_movimiento in ('101')
@@ -383,35 +383,35 @@ group by 1
   select distinct
     dm.id_material,
     dm.cod_material_interfaz as cod_material,
-    dm.denominacion_material,
+    dm.des_denominacion_material,
     dm.cod_tipo_material,
     dm.cod_jerarquia_material as cod_jerarquia,
     dm.cod_plataforma,
-    dm.plataforma as des_plataforma,
+    dm.des_plataforma as des_plataforma,
     dm.cod_sub_plataforma as cod_subplataforma,
-    dm.subplataforma as des_subplataforma,
+    dm.des_subplataforma as des_subplataforma,
     dm.cod_categoria,
-    dm.categoria as des_categoria,
+    dm.des_categoria as des_categoria,
     dm.cod_familia,
-    dm.familia as des_familia,
+    dm.des_familia as des_familia,
     dm.cod_variedad,
-    dm.variedad as des_variedad,
+    dm.des_variedad as des_variedad,
     dm.cod_presentacion,
-    dm.presentacion as des_presentacion,
-    dm.categoria_producto as cod_categoria_producto,
+    dm.des_presentacion as des_presentacion,
+    dm.cod_categoria_producto as cod_categoria_producto,
     case
       when 
-        ((dm.denominacion_material like '%ACEIT%' and dm.denominacion_material like '%BLD%') or 
-         (dm.denominacion_material like '%ACEIT%' and dm.denominacion_material like '%BIN%') or 
-         (dm.denominacion_material like '%ACEIT%' and dm.denominacion_material like '%GRANEL%') or 
-         (dm.denominacion_material like '%TBHQ%' or dm.denominacion_material like '%CISTERNA%') or 
-         (dm.denominacion_material like '%HARIN%' and dm.denominacion_material like '%GRANEL%')) then TRUE
+        ((dm.des_denominacion_material like '%ACEIT%' and dm.des_denominacion_material like '%BLD%') or 
+         (dm.des_denominacion_material like '%ACEIT%' and dm.des_denominacion_material like '%BIN%') or 
+         (dm.des_denominacion_material like '%ACEIT%' and dm.des_denominacion_material like '%GRANEL%') or 
+         (dm.des_denominacion_material like '%TBHQ%' or dm.des_denominacion_material like '%CISTERNA%') or 
+         (dm.des_denominacion_material like '%HARIN%' and dm.des_denominacion_material like '%GRANEL%')) then TRUE
       else FALSE
     end flg_excepcion_material, 
-    dm.long_cod_jerarquia as num_longitud_codigo_jerarquia,
+    dm.num_long_cod_jerarquia as num_longitud_codigo_jerarquia,
     ljer.num_longitud_codigo_jerarquia as num_longitud_correcta_jerarquia,
-    dm.flag_materia_prima_2 as flg_materia_prima,
-    dm.flag_dummy as flg_dummy,
+    dm.flg_materia_prima_2 as flg_materia_prima,
+    dm.flg_dummy as flg_dummy,
     dm.cod_material_interfaz,
     case 
       when length(dm.cod_material_interfaz) in (4,5,7) and dm.fec_creacion_material < '2021-03-01' then '1'
@@ -421,43 +421,43 @@ group by 1
     dm.cod_grupo_material,
     dm.des_grupo_material,
     case when gart.cod_grupo_articulo is null then FALSE else TRUE end flg_grupo_articulo,
-    gart_prop.grupo_articulo_propuesto as cod_grupo_articulo_propuesto,
-    dm.grupo_articulo_2 as cod_grupo_articulo_2,
-    dm.grupo_articulo_3 as cod_grupo_articulo_3,
+    gart_prop.cod_grupo_articulo_propuesto as cod_grupo_articulo_propuesto,
+    dm.cod_grupo_articulo_2 as cod_grupo_articulo_2,
+    dm.cod_grupo_articulo_3 as cod_grupo_articulo_3,
     dm.cod_sociedad,
-    dm.flag_centro as flg_centro,
-    dm.flag_organizacion_venta as flg_organizacion_venta,
-    dm.cod_unidad_medida_base,
+    dm.flg_centro as flg_centro,
+    dm.flg_organizacion_venta as flg_organizacion_venta,
+    dm.cod_unidad_medida_base as cod_unidad_base,
     dm.cod_bloqueo,
     dm.cod_grupo_transporte,
-    dm.grupo_transporte as des_grupo_transporte,
-    dm.tiempo_vida as num_tiempo_vida, 
-    dm.tiempo_duracion as num_tiempo_duracion,
-    dm.unidad_tiempo_vida as cod_unidad_tiempo_vida,
-    dm.status_actualizacion as est_actualizacion,
-    dm.status_actualizacion_completa as est_actualizacion_completa,
+    dm.des_grupo_transporte as des_grupo_transporte,
+    dm.num_tiempo_vida as num_tiempo_vida, 
+    dm.num_tiempo_duracion as num_tiempo_duracion,
+    dm.cod_unidad_tiempo_vida as cod_unidad_tiempo_vida,
+    dm.est_status_actualizacion as est_actualizacion,
+    dm.est_status_actualizacion_completa as est_actualizacion_completa,
     dm.cod_duenio_marca,
-    dm.fabricante as des_duenio_marca,
+    dm.des_fabricante as des_duenio_marca,
     dm.cod_onu_cubso,
     dm.cod_unidad_tiempo,
-    dm.peso_bruto_unidad_base as num_peso_bruto_unidad_base,
-    dm.peso_neto_unidad_base as num_peso_neto_unidad_base,
+    dm.mnt_peso_bruto_unidad_base as num_peso_bruto_unidad_base,
+    dm.mnt_peso_neto_unidad_base as num_peso_neto_unidad_base,
     dm.cod_unidad_peso,
-    dm.peso_bruto_kg as num_peso_bruto_kg,
-    dm.peso_neto_kg as num_peso_neto_kg,
-    dm.flag_conversion_kg as flg_conversion_kg,
-    dm.numerador_kg as num_numerador_kg,
-    dm.denominador_kg as num_denominador_kg,
-    dm.peso_convertido_kg as num_peso_convertido_kg,
-    dm.flag_unidad_comercial as flg_unidad_comercial,
-    dm.unidad_comercial_material as cod_unidad_comercial_material,
-    dm.peso_bruto_unidad_comercial as num_peso_bruto_unidad_comercial,
-    dm.unidad_peso_comercial as cod_unidad_peso_comercial,
-    dm.peso_unidad_comercial_kg as num_peso_unidad_comercial_kg,
-    safe_cast(dm.numerador_conversion_uco as int) as num_numerador_conversion_uco,
-    safe_cast(dm.denominador_conversion_uco as int) as num_denominador_conversion_uco,
-    dm.peso_bruto_unidad_base_calculado as num_peso_bruto_unidad_base_calculado,
-    case when dm.peso_neto_kg=0 then 1 else round(dm.peso_bruto_unidad_base_calculado/dm.peso_neto_kg - 1, 4) end num_variacion_peso_uco_unidad_base,
+    dm.mnt_peso_bruto_kg as num_peso_bruto_kg,
+    dm.mnt_peso_neto_kg as num_peso_neto_kg,
+    dm.flg_conversion_kg as flg_conversion_kg,
+    dm.num_numerador_kg as num_numerador_kg,
+    dm.num_denominador_kg as num_denominador_kg,
+    dm.mnt_peso_convertido_kg as num_peso_convertido_kg,
+    dm.flg_unidad_comercial as flg_unidad_comercial,
+    dm.cod_unidad_comercial_material as cod_unidad_comercial_material,
+    dm.mnt_peso_bruto_unidad_comercial as num_peso_bruto_unidad_comercial,
+    dm.cod_unidad_peso_comercial as cod_unidad_peso_comercial,
+    dm.mnt_peso_unidad_comercial_kg as num_peso_unidad_comercial_kg,
+    safe_cast(dm.num_numerador_conversion_uco as int) as num_numerador_conversion_uco,
+    safe_cast(dm.num_denominador_conversion_uco as int) as num_denominador_conversion_uco,
+    dm.mnt_peso_bruto_unidad_base_calculado as num_peso_bruto_unidad_base_calculado,
+    case when dm.mnt_peso_neto_kg=0 then 1 else round(dm.mnt_peso_bruto_unidad_base_calculado/dm.mnt_peso_neto_kg - 1, 4) end num_variacion_peso_uco_unidad_base,
     dm.cod_planner,
     case when dm.flg_sujeto_a_lote = 'X' then TRUE ELSE FALSE end as flg_sujeto_a_lote,
     dm.fec_creacion_material,
@@ -471,31 +471,31 @@ group by 1
     dm.cod_usuario_creador,
     dm.fec_ultima_modificacion,
     dm.cod_usuario_ultima_modificacion,
-    dm.flag_alicorp as flg_alicorp,
-    dm.flag_ali_itdvco as flg_alicorp_intradevco,
+    dm.flg_alicorp as flg_alicorp,
+    dm.flg_ali_itdvco as flg_alicorp_intradevco,
     dm.num_tiempo_vida_anterior,
-    dm.unidad_tiempo_vida_ant as cod_unidad_tiempo_vida_anterior,
-    dm.fecha_tiempo_vida_ant as fec_tiempo_vida_anterior,
-    dm.flag_tiempo_vida as flg_tiempo_vida,
+    dm.cod_unidad_tiempo_vida_ant as cod_unidad_tiempo_vida_anterior,
+    dm.fec_tiempo_vida_ant as fec_tiempo_vida_anterior,
+    dm.flg_tiempo_vida as flg_tiempo_vida,
     dm.cod_bloqueo_venta,
     dm.cod_negocio,
-    dm.grupo_materiales1 as des_grupo_material1,
+    dm.des_grupo_materiales1 as des_grupo_material1,
     dm.cod_subnegocio,
-    dm.grupo_materiales2 as des_grupo_material2,
+    dm.des_grupo_materiales2 as des_grupo_material2,
     dm.cod_marca,
-    dm.grupo_materiales4 as des_grupo_material4,
-    dm.unidad_almacenamiento as cod_unidad_almacenamiento,
-    safe_cast(dm.numerador_conv_unidad_almacenamiento as int) as num_numerador_conversion_unidad_almacenamiento,
-    safe_cast(dm.denominador_conv_unidad_almacenamiento as int) as num_denominador_conversion_unidad_almacenamiento,
-    dm.peso_bruto_almacenamiento as num_peso_bruto_almacenamiento,
-    dm.peso_neto_almacenamiento as num_peso_neto_almacenamiento,
-    dm.numerador_conversion_paleta as num_numerador_conversion_paleta,
-    dm.denominador_conversion_paleta as num_denominador_conversion_paleta,
-    dm.peso_neto_paleta as num_peso_neto_paleta, 
-    dm.volumen_unidad_base as num_volumen_unidad_base,
-    dm.unidad_volumen_base as cod_unidad_volumen_base, 
+    dm.des_grupo_materiales4 as des_grupo_material4,
+    dm.cod_unidad_almacenamiento as cod_unidad_almacenamiento,
+    safe_cast(dm.num_numerador_conv_unidad_almacenamiento as int) as num_numerador_conversion_unidad_almacenamiento,
+    safe_cast(dm.num_denominador_conv_unidad_almacenamiento as int) as num_denominador_conversion_unidad_almacenamiento,
+    dm.mnt_peso_bruto_almacenamiento as num_peso_bruto_almacenamiento,
+    dm.mnt_peso_neto_almacenamiento as num_peso_neto_almacenamiento,
+    dm.num_numerador_conversion_paleta as num_numerador_conversion_paleta,
+    dm.num_denominador_conversion_paleta as num_denominador_conversion_paleta,
+    dm.mnt_peso_neto_paleta as num_peso_neto_paleta, 
+    dm.mnt_volumen_unidad_base as num_volumen_unidad_base,
+    dm.cod_unidad_volumen_base as cod_unidad_volumen_base, 
     SAFE_CAST(NULL AS BOOLEAN) AS flg_fert_hawa, -- case when hfs.id_material is not null then TRUE else FALSE end flg_fert_hawa,
-    SAFE_CAST(NULL AS STRING) AS status, -- hfs.status,
+    SAFE_CAST(NULL AS STRING) AS cod_estado, -- hfs.status,
     SAFE_CAST(NULL AS STRING) AS cod_estado_nuevo, -- hfs.flg_status_nuevo as cod_estado_nuevo,
     --case when cu03.cod_material is not null then TRUE else FALSE end flg_raciolizacion_cu03,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_raciolizacion_cu03,
@@ -503,7 +503,7 @@ group by 1
     dm.cod_material_reemplazo_recursivo,
     case when ms.id_material is not null then TRUE else FALSE end flg_stock,
     dm.flg_lmt as flg_lista_material,
-    dm.centros_lmt as cod_centro_concatenado_lista_material,
+    dm.cod_centros_lmt as cod_centro_concatenado_lista_material,
     case when 
             (dm.cod_tipo_material = 'ZROH' and 
                 ((dm.cod_material like 'M77%' and LENGTH(dm.cod_material) = 10) or 
@@ -525,8 +525,8 @@ group by 1
       else FALSE
     end as flg_grupo_articulo_2,
     case
-      when dm.peso_bruto_unidad_base * dm.peso_neto_unidad_base = 0 then FALSE
-      when dm.peso_bruto_unidad_base < dm.peso_neto_unidad_base then FALSE
+      when dm.mnt_peso_bruto_unidad_base * dm.mnt_peso_neto_unidad_base = 0 then FALSE
+      when dm.mnt_peso_bruto_unidad_base < dm.mnt_peso_neto_unidad_base then FALSE
       else TRUE
     end as flg_peso_bruto,
     case
@@ -553,7 +553,7 @@ group by 1
     --   when mc001.id_material is null or mc023.id_material is null then TRUE
     --   else FALSE
     -- end as flg_clase_material, 
-    SAFE_CAST(NULL AS STRING) AS flg_clase_material,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_clase_material,
     dm.des_responsable_material, 
     'Hadjie Tarazona' as des_responsable_material_indirecto,
     SAFE_CAST(NULL AS DATE) AS fec_movimiento_consumo_201_261, -- bc2.fec_movimiento as fec_movimiento_consumo_201_261,
@@ -567,11 +567,11 @@ group by 1
     end as des_responsable_distribucion
   from datos_material dm
   left join `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_distribucion` crd 
-    on crd.des_categoria = dm.categoria
+    on crd.des_categoria = dm.des_categoria
 --  left join base_consumo_201_261 bc2
---    on bc2.id_material = dm.id_material and bc2.ranking = 1
+--    on bc2.id_material = dm.id_material and bc2.val_ranking = 1
 --  left join base_consumo_101 bc1
---    on bc1.id_material = dm.id_material and bc1.ranking = 1
+--    on bc1.id_material = dm.id_material and bc1.val_ranking = 1
 --  left join base_contratos bco 
 --    on bco.id_material = dm.id_material
 
@@ -589,14 +589,14 @@ group by 1
   on dm.cod_grupo_material = bga.cod_grupo_articulo and dm.cod_tipo_material = bga.cod_tipo_material
   left join `{silver_project_id}.slv_gobierno.ptp_grupo_articulo` gart
     on dm.cod_tipo_material=gart.cod_tipo_material 
-      and dm.flag_materia_prima=gart.flg_materia_prima 
-        and dm.grupo_articulo_2=gart.cod_grupo_articulo
+      and dm.flg_materia_prima=gart.flg_materia_prima 
+        and dm.cod_grupo_articulo_2=gart.cod_grupo_articulo
   left join grp_articulo_propuesto gart_prop
     on dm.cod_tipo_material=gart_prop.cod_tipo_material 
-      and dm.flag_materia_prima=gart_prop.flg_materia_prima
+      and dm.flg_materia_prima=gart_prop.flg_materia_prima
   left join `{silver_project_id}.slv_gobierno.ptp_longitud_jerarquia` ljer
     on dm.cod_tipo_material=ljer.cod_tipo_material 
-      and dm.long_cod_jerarquia=ljer.num_longitud_codigo_jerarquia
+      and dm.num_long_cod_jerarquia=ljer.num_longitud_codigo_jerarquia
 --  left join fh_status hfs
 --    on dm.id_material=hfs.id_material
   left join material_funcional mf

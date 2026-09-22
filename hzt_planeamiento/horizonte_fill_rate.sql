@@ -45,7 +45,7 @@ CREATE OR REPLACE TABLE `{horizonte_project_id}.hzt_planeamiento.horizonte_fill_
   num_semana INT64 OPTIONS(description="Semana"), -- semana
   num_dia INT64 OPTIONS(description="Día"), -- dia
   tip_facturado STRING OPTIONS(description="Tipo facturado"), -- tipo
-  flg_considerar STRING OPTIONS(description="Indicador considerar"), -- motivo_considerar
+  flg_considerar BOOLEAN OPTIONS(description="Flag considerar"), -- motivo_considerar
   des_motivo_ok STRING OPTIONS(description="Motivo OK"), -- motivo_ok
   num_mes INT64 OPTIONS(description="Mes"), -- mes
   cod_sku STRING OPTIONS(description="Código SKU"), -- sku

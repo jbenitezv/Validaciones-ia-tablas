@@ -22,15 +22,15 @@ datos_comercial AS (
     id_material, 
     cod_sociedad,
     cod_negocio,
-    des_negocio AS negocio,
+    des_negocio AS des_negocio,
     cod_subnegocio,
-    des_subnegocio AS subnegocio,
+    des_subnegocio AS des_subnegocio,
     cod_marca,
     cod_grupo_imputacion,
     ROW_NUMBER() OVER(
       PARTITION BY id_material
       ORDER BY CASE WHEN cod_sociedad='PE11' THEN 1 ELSE 2 END, cod_sociedad
-    ) AS rn
+    ) AS val_rn
   FROM `{silver_project_id}.slv_modelo_material.horizonte_material_organizacion_venta`
   WHERE COALESCE(cod_bloqueo_comercial,'')!='01'
 ),
@@ -39,13 +39,13 @@ datos_negocio AS (
   SELECT 
     id_material, 
     cod_negocio,
-    negocio, 
+    des_negocio, 
     cod_subnegocio,
-    subnegocio, 
+    des_subnegocio, 
     cod_marca, 
     cod_grupo_imputacion
   FROM datos_comercial
-  WHERE rn=1
+  WHERE val_rn=1
 ),
 
 -- centros_produccion AS (
@@ -71,7 +71,7 @@ datos_centro AS (
     mb.cod_material,
     mb.cod_tipo_material,
     mc.tip_material_fabricacion,
-    mb.des_material AS denominacion_material,
+    mb.des_material AS des_denominacion_material,
     CASE 
       WHEN (
         LEFT(mb.des_material,3) IN ('LAM','LÁM','EMP','ENV') 
@@ -86,18 +86,18 @@ datos_centro AS (
         LEFT(mb.des_material,2) IN ('TC','SF')
         OR LEFT(mb.des_material,5) IN ('TERMO','STREC')
       ) THEN 'Termocontraible'
-    END AS presentacion_2,
-    mb.flg_materia_prima AS flag_materia_prima,
+    END AS des_presentacion_2,
+    mb.flg_materia_prima AS flg_materia_prima,
     mb.cod_jerarquia,
-    mb.des_plataforma AS plataforma,
-    mb.des_subplataforma AS subplataforma,
-    mb.des_categoria AS categoria,
-    mb.des_familia AS familia,
-    mb.des_variedad AS variedad,
-    mb.des_presentacion AS presentacion,
+    mb.des_plataforma AS des_plataforma,
+    mb.des_subplataforma AS des_subplataforma,
+    mb.des_categoria AS des_categoria,
+    mb.des_familia AS des_familia,
+    mb.des_variedad AS des_variedad,
+    mb.des_presentacion AS des_presentacion,
     mb.cod_grupo_articulo,
     mb.des_grupo_articulo,
-    mb.cod_grupo_articulo_3 AS grupo_articulo_3,
+    mb.cod_grupo_articulo_3 AS cod_grupo_articulo_3,
     mb.cod_unidad_base,
     mb.cod_duenio_marca AS cod_propietario_marca,
     mc.cod_centro,
@@ -112,11 +112,11 @@ datos_centro AS (
     mc.cod_clase_aprovisionamiento,
     mc.cod_planificacion_necesidad,
     mc.cod_grupo_compra,
-    mc.num_tiempo_entrega_previsto AS tiempo_entrega_previsto,
+    mc.num_tiempo_entrega_previsto AS num_tiempo_entrega_previsto,
     mc.cod_almacen_aprovisionamiento_externo,
     mc.cod_almacen_produccion,
-    mc.cod_grupo_impo_expo,
-    mc.cod_tipo_aprov_especial, 
+    mc.cod_grupo_importacion_exportacion,
+    mc.cod_tipo_aprovisionamiento_especial, 
     mc.cod_aprovisionamiento_especial,
     mc.des_aprovisionamiento_especial,
     mc.cod_centro_origen,
@@ -128,54 +128,54 @@ datos_centro AS (
     mc.cod_grupo_tratamiento_logistico,
     mc.cod_grupo_planificacion,
     dn.cod_negocio,
-    dn.negocio,
+    dn.des_negocio,
     dn.cod_subnegocio,
-    dn.subnegocio,
+    dn.des_subnegocio,
     dn.cod_marca,
     dn.cod_grupo_imputacion,
     mc.cod_estado_mantenimiento,
-    CASE WHEN mc.flg_vista_compra=1 THEN TRUE ELSE FALSE END AS flag_compras,
-    CASE WHEN mc.flg_vista_venta=1 THEN TRUE ELSE FALSE END AS flag_ventas,
+    CASE WHEN mc.flg_vista_compra=1 THEN TRUE ELSE FALSE END AS flg_compras,
+    CASE WHEN mc.flg_vista_venta=1 THEN TRUE ELSE FALSE END AS flg_ventas,
     CASE
       WHEN mb.cod_tipo_material='ZROH'
        AND mc.cod_caracteristica_planificacion='PD'
        AND mb.des_material LIKE '%COMPRA'
-      THEN 'C'
+      THEN TRUE
       ELSE NULL
-    END AS flag_compra_2,
+    END AS flg_compra_2,
     mc.cod_centro_beneficio,
     mc.cod_indicador_impuesto,
-    mc.num_tiempo_tratamiento_entrada_mercancia AS tiempo_trat_entrada_mercancia,
+    mc.num_tiempo_tratamiento_entrada_mercancia AS num_tiempo_trat_entrada_mercancia,
     mb.fec_creacion_material,
     mb.cod_usuario_creador,
     mb.fec_ultima_modificacion,
     mb.cod_usuario_ultima_modificacion,
     mc.cod_determinacion_precio,
-    mc.cod_indicador_control_precio AS indicador_control_precios,
-    mc.num_precio_valorizado AS valor_precio_actual,
-    mc.num_cantidad_base AS cantidad_base,
-    mc.val_precio_previo AS valor_precio_anterior,
-    mc.cod_grupo_gasto AS grupo_gasto_gral,
-    mc.num_tamanio_lote AS tamanio_lote,
-    mb.des_grupo_material1 AS grupo_materiales1,
-    mb.des_grupo_material2 AS grupo_materiales2,
-    mc.flg_estructura_cuantitativa AS flag_estructura_cuantitativa,
-    mc.flg_material_origen AS flag_material_origen,
+    mc.cod_indicador_control_precio AS cod_indicador_control_precios,
+    mc.num_precio_valorizado AS val_precio_actual,
+    mc.num_cantidad_base AS val_cantidad_base,
+    mc.val_precio_previo AS val_precio_anterior,
+    mc.cod_grupo_gasto AS des_grupo_gasto_gral,
+    mc.num_tamanio_lote AS val_tamanio_lote,
+    mb.des_grupo_material1 AS des_grupo_materiales1,
+    mb.des_grupo_material2 AS des_grupo_materiales2,
+    mc.flg_estructura_cuantitativa AS flg_estructura_cuantitativa,
+    mc.flg_material_origen AS flg_material_origen,
     mc.cod_tipo_valoracion,
-    mc.flg_no_tiene_costo AS flag_no_tiene_costo,
-    mc.flg_material_coproducto AS flag_material_coproducto,
-    mc.flg_libro_material_activo AS flag_libro_materiales_activo,
+    mc.flg_no_tiene_costo AS flg_no_tiene_costo,
+    mc.flg_material_coproducto AS flg_material_coproducto,
+    mc.flg_libro_material_activo AS flg_libro_materiales_activo,
     mb.flg_fert_hawa,
-    mb.cod_estado AS status_fert_hawa,
-    mc.cnt_stock_seguridad AS cant_stock_seguridad,
-    mc.cnt_lote_minimo AS cant_lote_minimo,
+    mb.cod_estado AS est_status_fert_hawa,
+    mc.cnt_stock_seguridad AS cnt_stock_seguridad,
+    mc.cnt_lote_minimo AS cnt_lote_minimo,
     mc.num_valor_redondeo,
     mc.flg_suspension,
     dm.cod_material_reemplazo, 
     dm.cod_material_funcional,
     mc.cod_bloqueo_centro,
     mc.cod_material_reemplazante, 
-    mb.flg_excepcion_granel AS flg_excep_graneles,
+    mb.flg_excepcion_granel AS flg_excepcion_graneles,
     mc.des_planificacion_necesidad,
     mc.flg_pedido_automatico, 
     mc.cod_disponibilidad AS flg_disponibilidad,
@@ -354,21 +354,21 @@ base_final AS (
     dc.id_material,
     dc.cod_material,
     ms.cod_material_funcional AS flg_stock_material,
-    dc.denominacion_material,
-    dc.presentacion_2,
-    dc.flag_materia_prima,
+    dc.des_denominacion_material,
+    dc.des_presentacion_2,
+    dc.flg_materia_prima,
     dc.cod_tipo_material,
     dc.tip_material_fabricacion,
     dc.cod_jerarquia,
-    dc.plataforma,
-    dc.subplataforma,
-    dc.categoria,
-    dc.familia,
-    dc.variedad,
-    dc.presentacion,
+    dc.des_plataforma,
+    dc.des_subplataforma,
+    dc.des_categoria,
+    dc.des_familia,
+    dc.des_variedad,
+    dc.des_presentacion,
     dc.cod_grupo_articulo,
     dc.des_grupo_articulo,
-    dc.grupo_articulo_3,
+    dc.cod_grupo_articulo_3,
     dc.cod_propietario_marca,
     dc.cod_centro,
     dc.cod_sociedad,
@@ -379,23 +379,23 @@ base_final AS (
     dc.cod_unidad_almacenamiento,
     dc.cod_indicador_control_precio,
     dc.cod_categoria_valoracion,
-    SAFE_CAST(NULL AS STRING) AS categoria_valoracion_recomendada,
+    SAFE_CAST(NULL AS STRING) AS cod_categoria_valoracion_recomendada,
     dc.cod_caracteristica_planificacion,
-    CASE WHEN cpl.cod_caracteristica_planificacion IS NULL THEN FALSE ELSE TRUE END AS flag_caract_planificacion,
+    CASE WHEN cpl.cod_caracteristica_planificacion IS NULL THEN FALSE ELSE TRUE END AS flg_caract_planificacion,
     dc.cod_clase_aprovisionamiento,
     CASE WHEN bca.cod_material IS NOT NULL THEN TRUE ELSE FALSE END AS flg_clase_aprovisionamiento,
     dc.cod_planificacion_necesidad,
     dc.cod_grupo_compra,
-    CASE WHEN grpc.cod_grupo_compra IS NULL THEN FALSE ELSE TRUE END AS flag_grupo_compras,
-    dc.tiempo_entrega_previsto,
+    CASE WHEN grpc.cod_grupo_compra IS NULL THEN FALSE ELSE TRUE END AS flg_grupo_compras,
+    dc.num_tiempo_entrega_previsto,
     dc.cod_almacen_aprovisionamiento_externo,
     dc.cod_almacen_produccion,
-    dc.cod_grupo_impo_expo,
-    dc.cod_tipo_aprov_especial,
+    dc.cod_grupo_importacion_exportacion,
+    dc.cod_tipo_aprovisionamiento_especial,
     dc.cod_aprovisionamiento_especial,
     CASE
       WHEN dc.cod_aprovisionamiento_especial IS NOT NULL
-       AND dc.tiempo_entrega_previsto<7 THEN TRUE
+       AND dc.num_tiempo_entrega_previsto<7 THEN TRUE
       ELSE FALSE
     END AS flg_tiempo_entrega,
     dc.des_aprovisionamiento_especial,
@@ -412,15 +412,15 @@ base_final AS (
     dc.cod_marca,
     dc.cod_grupo_imputacion,
     dc.cod_estado_mantenimiento,
-    dc.flag_compras,
-    dc.flag_ventas,
+    dc.flg_compras,
+    dc.flg_ventas,
     dc.cod_centro_beneficio,
     CASE
       WHEN TRIM(COALESCE(val_prctr.cod_centro_beneficio,''))='' THEN NULL
       ELSE val_prctr.cod_centro_beneficio
-    END AS centro_beneficio_propuesto,
+    END AS cod_centro_beneficio_propuesto,
     dc.cod_indicador_impuesto,
-    dc.tiempo_trat_entrada_mercancia,
+    dc.num_tiempo_trat_entrada_mercancia,
     dc.fec_creacion_material,
     CASE 
       WHEN dc.cod_tipo_material IN ('ZFER','ZHAW')
@@ -439,35 +439,35 @@ base_final AS (
     dc.fec_ultima_modificacion,
     dc.cod_usuario_ultima_modificacion,
     dc.cod_determinacion_precio,
-    cpr.flg_determinacion_precio AS determinacion_precio_correcto,
-    dc.indicador_control_precios,
-    cpr.num_indicador_control_precio AS indicador_control_precios_correcto,
-    dc.valor_precio_actual,
-    dc.cantidad_base,
-    dc.valor_precio_anterior,
+    cpr.flg_determinacion_precio AS val_determinacion_precio_correcto,
+    dc.cod_indicador_control_precios,
+    cpr.num_indicador_control_precio AS cod_indicador_control_precios_correcto,
+    dc.val_precio_actual,
+    dc.val_cantidad_base,
+    dc.val_precio_anterior,
     CASE
-      WHEN dc.valor_precio_anterior!=0
-      THEN ABS(dc.valor_precio_actual/dc.valor_precio_anterior-1)
-    END AS variacion_precio,
+      WHEN dc.val_precio_anterior!=0
+      THEN ABS(dc.val_precio_actual/dc.val_precio_anterior-1)
+    END AS val_variacion_precio,
     CASE
-      WHEN dc.cantidad_base!=0
-      THEN ROUND(dc.valor_precio_actual/dc.cantidad_base,4)
-    END AS ratio_precio_base,
-    dc.grupo_gasto_gral,
-    dc.tamanio_lote,
-    dc.grupo_materiales1,
-    dc.grupo_materiales2,
-    dc.flag_estructura_cuantitativa,
-    dc.flag_material_origen,
+      WHEN dc.val_cantidad_base!=0
+      THEN ROUND(dc.val_precio_actual/dc.val_cantidad_base,4)
+    END AS val_ratio_precio_base,
+    dc.des_grupo_gasto_gral,
+    dc.val_tamanio_lote,
+    dc.des_grupo_materiales1,
+    dc.des_grupo_materiales2,
+    dc.flg_estructura_cuantitativa,
+    dc.flg_material_origen,
     dc.cod_tipo_valoracion,
-    dc.flag_no_tiene_costo,
-    dc.flag_material_coproducto,
-    dc.flag_libro_materiales_activo,
+    dc.flg_no_tiene_costo,
+    dc.flg_material_coproducto,
+    dc.flg_libro_materiales_activo,
 
     SAFE_CAST(NULL AS BOOLEAN) AS flg_componente,
 
     dc.flg_fert_hawa,
-    dc.status_fert_hawa,
+    dc.est_status_fert_hawa,
 
     -- CASE
     --   WHEN cu03.cod_material IS NOT NULL THEN TRUE
@@ -475,40 +475,40 @@ base_final AS (
     -- END AS flg_racio_cu03,
     SAFE_CAST(NULL AS BOOLEAN) AS flg_racio_cu03,
 
-    dc.negocio,
-    dc.subnegocio,
-    cb.val_centro_beneficio_digito AS centro_beneficio_digi_567,
+    dc.des_negocio,
+    dc.des_subnegocio,
+    cb.val_centro_beneficio_digito AS cod_centro_beneficio_digito_567,
 
     CASE
       WHEN dc.cod_caracteristica_planificacion IN ('YD')
-       AND dc.tiempo_entrega_previsto>4 THEN FALSE
+       AND dc.num_tiempo_entrega_previsto>4 THEN FALSE
       WHEN dc.cod_caracteristica_planificacion IN ('ZD')
-       AND dc.tiempo_entrega_previsto<=4 THEN FALSE
+       AND dc.num_tiempo_entrega_previsto<=4 THEN FALSE
       ELSE TRUE
     END AS flg_tipo_mrp,
 
-    dc.cant_stock_seguridad,
-    dc.cant_lote_minimo,
+    dc.cnt_stock_seguridad,
+    dc.cnt_lote_minimo,
     dc.num_valor_redondeo,
     dc.flg_suspension,
-    dc.cod_material_reemplazo AS cod_mat_reemplazo,
+    dc.cod_material_reemplazo AS cod_material_reemplazo,
     dc.cod_material_funcional,
 
     CASE
       WHEN SUBSTRING(dc.cod_grupo_tratamiento_logistico,4,1) IN ('6')
-       AND tiempo_entrega_previsto<=60 THEN TRUE
+       AND num_tiempo_entrega_previsto<=60 THEN TRUE
       WHEN SUBSTRING(dc.cod_grupo_tratamiento_logistico,4,1) IN ('7')
-       AND tiempo_entrega_previsto<=30 THEN TRUE
+       AND num_tiempo_entrega_previsto<=30 THEN TRUE
       ELSE FALSE
     END AS flg_leadtime,
 
     -- CASE
     --   WHEN ra.id_material IS NOT NULL THEN TRUE
     --   ELSE FALSE
-    -- END AS flg_tiene_receta,
+    -- END AS flg_receta,
 
     -- ra.cod_grupo_receta,
-    SAFE_CAST(NULL AS BOOLEAN) AS flg_tiene_receta,
+    SAFE_CAST(NULL AS BOOLEAN) AS flg_receta,
     SAFE_CAST(NULL AS STRING) AS cod_grupo_receta,
 
     dc.cod_bloqueo_centro,
@@ -534,9 +534,9 @@ base_final AS (
         '1602','1603','1605','1606'
       ) THEN TRUE
       ELSE FALSE
-    END AS flg_centros_ibp,
+    END AS flg_centro_ibp,
 
-    dc.flg_excep_graneles,
+    dc.flg_excepcion_graneles,
     dc.des_planificacion_necesidad,
 
     CASE
@@ -554,10 +554,10 @@ base_final AS (
     END AS flg_aprov,
 
     CASE 
-      WHEN tiempo_entrega_previsto<=15
+      WHEN num_tiempo_entrega_previsto<=15
        AND dc.cod_caracteristica_planificacion='ZD'
        AND dc.cod_grupo_tratamiento_logistico='0002' THEN TRUE
-      WHEN tiempo_entrega_previsto>=15
+      WHEN num_tiempo_entrega_previsto>=15
        AND dc.cod_caracteristica_planificacion='YD'
        AND dc.cod_grupo_tratamiento_logistico='0002' THEN TRUE
       ELSE FALSE
@@ -609,7 +609,7 @@ base_final AS (
   FROM datos_centro dc
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_categoria_responsable_distribucion` crd
-    ON UPPER(crd.des_categoria)=UPPER(dc.categoria)
+    ON UPPER(crd.des_categoria)=UPPER(dc.des_categoria)
 
   LEFT JOIN base_ubicacion bu
     ON bu.id_material=dc.id_material
@@ -634,11 +634,11 @@ base_final AS (
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_grupo_compra` grpc
     ON dc.cod_tipo_material=grpc.cod_tipo_material
    AND dc.cod_grupo_compra=grpc.cod_grupo_compra
-   AND dc.grupo_articulo_3=grpc.cod_grupo_articulo
+   AND dc.cod_grupo_articulo_3=grpc.cod_grupo_articulo
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_material_caracteristica_planificacion` cpl
     ON dc.cod_tipo_material=cpl.cod_tipo_material
-   AND COALESCE(dc.flag_compra_2,'')=COALESCE(cpl.flg_compra,'')
+   AND COALESCE(dc.flg_compra_2,'')=COALESCE(cpl.flg_compra,'')
    AND dc.cod_caracteristica_planificacion=cpl.cod_caracteristica_planificacion
 
   LEFT JOIN `{silver_project_id}.slv_gobierno.ptp_homologacion_jerarquia_centro_beneficio` val_prctr
